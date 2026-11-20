@@ -1,0 +1,59 @@
+# Single source for speaker notes, timing and sources. Slide ids match \slideid{...} in deck.tex.
+title: latex-slides
+presenter: latex-slides authors
+date: '2026-11-20'
+language: en
+duration_seconds: 240
+sourcing: normal
+output_name: latex-slides_demo
+template: ../../templates/default
+build:
+  svg: true
+  png_width: 1920
+checks:
+  max_text_units: 80
+  duration_tolerance: 0.1
+  render_diff_threshold: 12
+slides:
+- id: cover
+  title: latex-slides
+  seconds: 15
+  script: This deck was produced by the pipeline it describes.
+  sources: []
+- id: agenda
+  title: Agenda
+  seconds: 10
+  script: "Three parts: the pipeline, the visual rules, and the checks."
+  sources: []
+- id: pipeline
+  title: One source, two deliverables
+  seconds: 70
+  script: |
+    All content lives in deck.tex; notes, timing and sources live in deck.yaml.
+    XeLaTeX produces the PDF, every page becomes an SVG with a PNG fallback, and the
+    PPTX gets speaker notes and videos. check.py verifies the result. Next, the rule
+    that keeps slides readable.
+  sources:
+    - latex-slides documentation, SKILL.md
+- id: visual
+  title: Every content slide pairs text with a visual
+  seconds: 70
+  script: |
+    People remember pictures far better than text alone. The chart uses illustrative
+    numbers in the spirit of the picture-superiority effect. That is why every content
+    slide needs a visual and a small text budget. Finally, how we verify all this.
+  sources:
+    - "Medina, J. Brain Rules. Pear Press, 2008 (picture superiority); numbers are illustrative"
+- id: checks
+  title: Automatic checks before delivery
+  seconds: 60
+  script: |
+    Scripts check fonts, layout, visuals, the PPTX package and rendering. Warnings are
+    reported to the user. After that, someone looks at every page.
+  sources:
+    - latex-slides scripts/check.py
+- id: closing
+  title: Thank you
+  seconds: 15
+  script: Thank you. The repository link is on the slide.
+  sources: []

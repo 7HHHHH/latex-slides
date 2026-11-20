@@ -1,0 +1,134 @@
+% latex-slides.sty -- layout layer for the latex-slides pipeline.
+% Template parameters come from ls-config.tex, generated from template.yaml
+% by scripts/build.py (never edit ls-config.tex by hand).
+% Coordinates are in bp (1/72 in) measured from the top-left page corner.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{latex-slides}[2026/11/20 v1.0 latex-slides layout layer]
+
+\RequirePackage{fontspec}
+\RequirePackage{graphicx,booktabs,tabularx,array,amsmath,amssymb,colortbl}
+\RequirePackage{tikz,pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning,arrows.meta,calc,shapes.geometric,fit,backgrounds}
+\RequirePackage[absolute,overlay]{textpos}
+\RequirePackage{etoolbox}
+
+\InputIfFileExists{ls-config.tex}{}{\PackageError{latex-slides}{ls-config.tex not found}{Run scripts/build.py, which generates it from template.yaml.}}
+
+% ---------------------------------------------------------------- page
+\geometry{paperwidth=\lsPageW bp,paperheight=\lsPageH bp}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=\lsSafeX bp,text margin right=\dimexpr\lsPageW bp-\lsSafeX bp-\lsSafeW bp\relax}
+\setbeamertemplate{headline}{\vspace*{\dimexpr\lsSafeY bp-14bp\relax}}
+\setbeamercolor{normal text}{fg=lsText,bg=white}
+\setbeamercolor{structure}{fg=lsAccent}
+\setbeamercolor{frametitle}{fg=lsTitle}
+\setbeamertemplate{itemize items}{\raisebox{0.15em}{\color{lsAccent}\rule{0.38em}{0.38em}}}
+\BeforeBeginEnvironment{frame}{\color{lsText}\fontsize{\lsSizeBody}{\lsLeadBody}\selectfont}
+
+% ---------------------------------------------------------------- metadata
+% Every shipped page records its role, slide id, visuals and videos in
+% \jobname.lsmeta; build.py and check.py read it.
+\newwrite\ls@meta
+\AtBeginDocument{\immediate\openout\ls@meta=\jobname.lsmeta\relax}
+\newcommand{\ls@write}[1]{\write\ls@meta{#1}}
+\newcommand{\slideid}[1]{\ls@write{id\space\thepage\space #1}}
+\newcommand{\lsMarkVisual}{\ls@write{visual\space\thepage}}
+\AtBeginEnvironment{tikzpicture}{\lsMarkVisual}
+\AtBeginEnvironment{tabular}{\lsMarkVisual}
+\AtBeginEnvironment{tabularx}{\lsMarkVisual}
+
+% ---------------------------------------------------------------- roles & backgrounds
+\def\ls@role{body}
+\newcommand{\ls@bg}[1]{%
+  \ifcsname lsBg@#1\endcsname
+    \edef\ls@file{\csname lsBg@#1\endcsname}%
+    \ifx\ls@file\@empty\else\includegraphics[width=\paperwidth,height=\paperheight]{\ls@file}\fi
+  \fi}
+\setbeamertemplate{background canvas}{%
+  \ls@write{page\space\thepage\space\ls@role}%
+  \ls@bg{\ls@role}}
+% \lsrole{cover|agenda|section|body|closing}: use inside a group around a frame.
+\newcommand{\lsrole}[1]{\def\ls@role{#1}}
+
+% ---------------------------------------------------------------- fonts helpers
+\newcommand{\headingfont}{\lsHeadingFamily}
+
+% ---------------------------------------------------------------- title & footer
+\def\ls@chapter{}
+\newcommand{\lsChapter}[1]{\def\ls@chapter{#1}}
+\setbeamertemplate{frametitle}{%
+  \begin{textblock*}{\lsTitleW bp}(\lsTitleX bp,\lsTitleY bp)%
+    \begin{minipage}[t][\lsTitleH bp][c]{\lsTitleW bp}\raggedright
+      {\headingfont\fontsize{\lsSizeTitle}{\lsLeadTitle}\selectfont\bfseries\color{lsTitle}%
+       \ifx\ls@chapter\@empty\else\ls@chapter.\kern0.2em\fi\insertframetitle\par}%
+    \end{minipage}%
+  \end{textblock*}}
+\def\ls@bodyrole{body}
+\setbeamertemplate{footline}{%
+  % beamer typesets the footline once at \begin{document} to measure it;
+  % textpos would queue that copy onto page 1, hence the framenumber guard.
+  \ifnum\c@framenumber>0\relax\ifx\ls@role\ls@bodyrole
+  \begin{textblock*}{\lsNumW bp}(\lsNumX bp,\lsNumY bp)%
+    \begin{minipage}[t]{\lsNumW bp}\raggedleft
+      {\fontsize{\lsSizeNumber}{\lsSizeNumber}\selectfont\color{lsMuted}\insertframenumber}%
+    \end{minipage}%
+  \end{textblock*}%
+  \fi\fi}
+
+% ---------------------------------------------------------------- placement macros
+% \at{x}{y}{w}{content}         text block, top-left corner at (x,y)
+% \pic{x}{y}{w}{h}{file}        image fitted into w x h (counts as a visual)
+% \figat{x}{y}{w}{h}{file}{cap} image plus caption below it
+\newcommand{\at}[4]{\begin{textblock*}{#3bp}(#1bp,#2bp)\begin{minipage}[t]{#3bp}\vspace{0pt}\raggedright
+  \fontsize{\lsSizeBody}{\lsLeadBody}\selectfont #4\end{minipage}\end{textblock*}}
+\newcommand{\pic}[5]{\lsMarkVisual\at{#1}{#2}{#3}{\centering\includegraphics[width=#3bp,height=#4bp,keepaspectratio]{#5}}}
+\newcommand{\captionat}[4]{\at{#1}{#2}{#3}{\fontsize{\lsSizeCaption}{\lsLeadCaption}\selectfont\color{lsMuted}#4}}
+\newcommand{\figat}[6]{\pic{#1}{#2}{#3}{#4}{#5}%
+  \captionat{#1}{\the\numexpr#2+#4+4\relax}{#3}{\centering #6}}
+
+% ---------------------------------------------------------------- text styles
+\newcommand{\key}[1]{{\color{lsPrimary}\bfseries #1}}
+\newcommand{\heading}[1]{{\headingfont\fontsize{\lsSizeHeading}{\lsLeadHeading}\selectfont\color{lsPrimary}\bfseries #1\par}}
+\newcommand{\point}[2]{\heading{#1}\vspace{4pt}{\fontsize{\lsSizeBody}{\lsLeadBody}\selectfont #2\par}}
+\newcommand{\detail}[1]{{\fontsize{\lsSizeDetail}{\lsLeadDetail}\selectfont\color{lsMuted}#1\par}}
+% \lead{...}: one-sentence question/claim at the top of the safe area.
+\newcommand{\lead}[1]{\at{\lsSafeX}{\lsSafeY}{\lsSafeW}{{\headingfont\fontsize{\lsSizeHeading}{\lsLeadHeading}\selectfont #1\par}}}
+% \takeaway{...}: rule + conclusion at the bottom of the safe area.
+\newcommand{\takeaway}[1]{\at{\lsSafeX}{\the\numexpr\lsSafeY+\lsSafeH-40\relax}{\lsSafeW}{%
+  {\color{lsRule}\hrule height0.5pt}\vspace{7pt}{\headingfont\fontsize{\lsSizeDetail}{\lsLeadDetail}\selectfont\color{lsPrimary}#1}}}
+
+% ---------------------------------------------------------------- layout helpers
+% \lsContentTop / \lsContentBottom: usable band between \lead and \takeaway.
+\edef\lsContentTop{\the\numexpr\lsSafeY+52\relax}
+\edef\lsContentBottom{\the\numexpr\lsSafeY+\lsSafeH-48\relax}
+% \splitpic[ratio]{file}{caption}{right text}: picture left, text right,
+% placed between \lead and \takeaway. ratio = picture share of width (default .55).
+\newcommand{\splitpic}[4][0.55]{%
+  \pgfmathtruncatemacro\ls@lw{(\lsSafeW-32)*#1}%
+  \pgfmathtruncatemacro\ls@rx{\lsSafeX+\ls@lw+32}%
+  \pgfmathtruncatemacro\ls@rw{\lsSafeW-\ls@lw-32}%
+  \pgfmathtruncatemacro\ls@h{\lsContentBottom-\lsContentTop-24}%
+  \figat{\lsSafeX}{\lsContentTop}{\ls@lw}{\ls@h}{#2}{#3}%
+  \at{\ls@rx}{\lsContentTop}{\ls@rw}{#4}}
+% \textpic: mirror of \splitpic (text left, picture right).
+\newcommand{\textpic}[4][0.55]{%
+  \pgfmathtruncatemacro\ls@lw{(\lsSafeW-32)*(1-#1)}%
+  \pgfmathtruncatemacro\ls@rx{\lsSafeX+\ls@lw+32}%
+  \pgfmathtruncatemacro\ls@rw{\lsSafeW-\ls@lw-32}%
+  \pgfmathtruncatemacro\ls@h{\lsContentBottom-\lsContentTop-24}%
+  \at{\lsSafeX}{\lsContentTop}{\ls@lw}{#4}%
+  \figat{\ls@rx}{\lsContentTop}{\ls@rw}{\ls@h}{#2}{#3}}
+
+% ---------------------------------------------------------------- video
+% \lsvideo{x}{y}{w}{poster image}{media/file.mp4}
+% PDF: clickable poster opening the file; PPTX: embedded movie at the same place.
+\newsavebox\ls@vbox
+\newcommand{\lsvideo}[5]{%
+  \sbox\ls@vbox{\includegraphics[width=#3bp]{#4}}%
+  \lsMarkVisual
+  % expand the box height now, the page number at shipout
+  \edef\ls@x{\noexpand\ls@write{video\space\noexpand\thepage\space#1\space#2\space#3\space\the\ht\ls@vbox\space\detokenize{#4}\space\detokenize{#5}}}\ls@x
+  \at{#1}{#2}{#3}{\href{run:#5}{\usebox\ls@vbox}}}
+
+\endinput

@@ -1,0 +1,91 @@
+% latex-slides demo deck (uses the built-in default template).
+% Build: python3 scripts/build.py examples/demo && python3 scripts/check.py examples/demo
+\documentclass[aspectratio=169,t]{beamer}
+\usepackage{latex-slides}
+\graphicspath{{assets/}}
+\hypersetup{colorlinks=true,urlcolor=lsPrimary,linkcolor=lsPrimary,pdftitle={latex-slides},pdfauthor={latex-slides authors}}
+\begin{document}
+
+{\lsrole{cover}
+\begin{frame}[plain]\slideid{cover}
+\at{88}{110}{780}{{\headingfont\fontsize{44}{54}\selectfont\bfseries\color{lsPrimary} latex-slides\par}}
+\at{88}{172}{780}{{\headingfont\fontsize{24}{34}\selectfont\color{lsText} LaTeX as the single source,\\ PowerPoint 365 as the delivery format\par}}
+\at{88}{428}{780}{{\color{lsInverse}\fontsize{20}{30}\selectfont Demo deck\par 2026-11-20}}
+\end{frame}}
+
+{\lsrole{agenda}
+\begin{frame}[plain]\slideid{agenda}
+\at{40}{240}{220}{{\headingfont\fontsize{36}{46}\selectfont\bfseries\color{lsInverse} Agenda}}
+\at{370}{150}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 01\quad\color{lsText}\bfseries Pipeline\par}}
+\at{370}{250}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 02\quad\color{lsText}\bfseries Visual rules\par}}
+\at{370}{350}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 03\quad\color{lsText}\bfseries Checks\par}}
+\end{frame}}
+
+\lsChapter{01}
+\begin{frame}{One source, two deliverables}\slideid{pipeline}
+\lead{Content lives only in LaTeX; everything else is generated.}
+\at{56}{\lsContentTop}{848}{\centering
+\begin{tikzpicture}[x=1bp,y=1bp,node distance=34bp,
+    box/.style={draw=lsAccent,line width=1.3bp,rounded corners=4bp,minimum width=150bp,minimum height=58bp,
+      align=center,font=\headingfont\fontsize{19}{22}\selectfont},
+    res/.style={box,fill=lsAccent!14},
+    sub/.style={font=\fontsize{14}{16}\selectfont\color{lsMuted}},
+    arr/.style={-{Latex[length=8bp]},line width=1.4bp,color=lsPrimary}]
+  \node[box] (tex) {deck.tex\\[-1pt]{\fontsize{14}{16}\selectfont content}};
+  \node[box,right=of tex] (pdf) {PDF\\[-1pt]{\fontsize{14}{16}\selectfont XeLaTeX}};
+  \node[box,right=of pdf] (svg) {SVG + PNG\\[-1pt]{\fontsize{14}{16}\selectfont per page}};
+  \node[res,right=of svg] (pptx) {PPTX\\[-1pt]{\fontsize{14}{16}\selectfont PowerPoint 365}};
+  \node[box,above=24bp of svg] (yaml) {deck.yaml\\[-1pt]{\fontsize{14}{16}\selectfont notes, sources}};
+  \node[box,below=24bp of svg] (chk) {check.py\\[-1pt]{\fontsize{14}{16}\selectfont verify report}};
+  \draw[arr] (tex) -- (pdf); \draw[arr] (pdf) -- (svg); \draw[arr] (svg) -- (pptx);
+  \draw[arr] (yaml.east) -| (pptx.north);
+  \draw[arr] (pdf.south) |- (chk.west);
+  \draw[arr] (pptx.south) |- (chk.east);
+\end{tikzpicture}}
+\at{56}{404}{848}{\detail{Fixed stages: intake, template, outline, scaffold, write, build \& verify, deliver.}}
+\takeaway{Edit LaTeX, rebuild, and the PDF and PPTX stay identical.}
+\end{frame}
+
+\lsChapter{02}
+\begin{frame}{Every content slide pairs text with a visual}\slideid{visual}
+\lead{Text explains the visual; the visual carries the evidence.}
+\at{56}{\lsContentTop}{470}{\begin{tikzpicture}
+\begin{axis}[width=430bp,height=262bp,ybar,bar width=26bp,ymin=0,ymax=100,
+  symbolic x coords={Text only,Text + figure},xtick=data,ylabel={Recall after one week (\%)},
+  nodes near coords,every node near coord/.append style={font=\fontsize{14}{16}\selectfont},
+  axis lines*=left,ymajorgrids,grid style={color=lsRule},enlarge x limits=0.5,
+  tick label style={font=\fontsize{14}{16}\selectfont},label style={font=\fontsize{14}{16}\selectfont}]
+\addplot[fill=lsAccent,draw=none] coordinates {(Text only,10) (Text + figure,65)};
+\end{axis}\end{tikzpicture}\par
+{\fontsize{\lsSizeCaption}{\lsLeadCaption}\selectfont\color{lsMuted}Illustrative numbers; picture-superiority effect (Medina, 2008).}}
+\at{560}{\lsContentTop}{344}{\point{Rule}{At least one figure, diagram, chart, table or video per content slide.}\vspace{12pt}
+\point{Budget}{About 50 English words or 80 CJK characters; split instead of shrinking.}}
+\takeaway{check.py fails any content slide without a visual.}
+\end{frame}
+
+\lsChapter{03}
+\begin{frame}{Automatic checks before delivery}\slideid{checks}
+\lead{Scripts first, then eyes.}
+\at{56}{\lsContentTop}{848}{\centering\fontsize{21}{30}\selectfont\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+\textbf{Area} & \textbf{Checked} & \textbf{Level}\\
+\midrule
+LaTeX & glyphs, overfull boxes & FAIL\\
+Layout & safe area, text budget & FAIL\\
+Visuals & one per content slide & FAIL\\
+Package & SVG, notes, links, video & FAIL\\
+Rendering & PPTX vs.\ PDF pixels & FAIL\\
+Hygiene & masks, size, scripts & WARN\\
+\bottomrule
+\end{tabular}}
+\takeaway{Then review every page by eye.}
+\end{frame}
+
+{\lsrole{closing}
+\begin{frame}[plain]\slideid{closing}
+\at{80}{220}{800}{\centering{\headingfont\fontsize{40}{50}\selectfont\bfseries\color{lsInverse} Thank you\par}}
+\at{80}{340}{800}{\centering{\fontsize{22}{30}\selectfont\href{https://github.com/7HHHHH/latex-slides}{\color{lsInverse}github.com/7HHHHH/latex-slides}}}
+\end{frame}}
+
+\end{document}

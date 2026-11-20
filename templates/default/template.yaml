@@ -1,0 +1,31 @@
+# latex-slides template description. Coordinates in bp from the top-left corner.
+name: default
+description: Neutral built-in template (white body, navy/blue accents).
+page_size: {width_bp: 960, height_bp: 540}
+backgrounds:
+  cover: bg/cover.pdf
+  agenda: bg/agenda.pdf
+  section: bg/section.pdf
+  body: bg/body.pdf
+  closing: bg/closing.pdf
+# Content box on body pages: \lead, \takeaway, layout helpers and check.py use it.
+safe_area: {x: 56, y: 96, w: 848, h: 392}
+title: {x: 56, y: 30, w: 848, h: 52}
+page_number: {x: 844, y: 508, w: 60, h: 20}
+palette:
+  primary: "#123A5A"
+  accent: "#3F86D8"
+  muted: "#4F5964"
+  text: "#111111"
+  title: "#111111"
+  rule: "#BFCAD5"
+  inverse: "#FFFFFF"     # text on dark areas (cover band, agenda panel, closing)
+# First installed font wins; the last entries ship with TeX Live.
+fonts:
+  latin:
+    heading: [Arial, Liberation Sans, TeX Gyre Heros]
+    body: [Times New Roman, Liberation Serif, TeX Gyre Termes]
+  cjk:
+    heading: [Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Source Han Sans SC]
+    body: [SimSun, Songti SC, Noto Serif CJK SC, Source Han Serif SC]
+sizes: {title: 24, heading: 21, body: 20, detail: 18, caption: 13, number: 14}

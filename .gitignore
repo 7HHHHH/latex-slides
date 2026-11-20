@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+# build products of decks (examples keep their sources only)
+**/build/
+**/ls-config.tex
+examples/*/output/
+examples/*/verify/
+templates/*/src/.build/

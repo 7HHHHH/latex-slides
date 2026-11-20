@@ -1,0 +1,43 @@
+% Source of the built-in neutral template backgrounds (5 pages, 960x540 bp).
+% Rebuild: scripts/dev/build_default_template.sh
+\documentclass{article}
+\usepackage[paperwidth=960bp,paperheight=540bp,margin=0pt]{geometry}
+\usepackage{tikz}
+\definecolor{Primary}{HTML}{123A5A}
+\definecolor{Accent}{HTML}{3F86D8}
+\definecolor{Rule}{HTML}{BFCAD5}
+\definecolor{Tint}{HTML}{EEF3F8}
+\pagestyle{empty}
+\newcommand{\canvas}[1]{\noindent\begin{tikzpicture}[x=1bp,y=-1bp]
+  \useasboundingbox (0,0) rectangle (960,540);
+  #1
+\end{tikzpicture}\newpage}
+\begin{document}
+% 1 cover
+\canvas{
+  \fill[Primary] (0,400) rectangle (960,540);
+  \fill[Accent] (0,392) rectangle (960,400);
+  \fill[Accent] (56,96) rectangle (64,232);
+}
+% 2 agenda
+\canvas{
+  \fill[Primary] (0,0) rectangle (300,540);
+  \fill[Accent] (300,0) rectangle (306,540);
+}
+% 3 section
+\canvas{
+  \fill[Tint] (0,0) rectangle (960,540);
+  \fill[Primary] (0,0) rectangle (24,540);
+  \fill[Accent] (96,300) rectangle (256,306);
+}
+% 4 body
+\canvas{
+  \fill[Accent] (40,38) rectangle (46,74);
+  \draw[Rule,line width=0.6bp] (56,500) -- (904,500);
+}
+% 5 closing
+\canvas{
+  \fill[Primary] (0,0) rectangle (960,540);
+  \fill[Accent] (380,318) rectangle (580,324);
+}
+\end{document}
