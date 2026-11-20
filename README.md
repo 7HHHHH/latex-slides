@@ -1,81 +1,264 @@
-# latex-slides
+<div align="center">
 
-An agent skill for making presentation decks with **LaTeX/Beamer as the single source of
-truth**, delivered as a vector **PDF** and a **PowerPoint 365 PPTX**. In the PPTX, each slide
-is an SVG with a PNG fallback, and the file carries speaker notes, embedded video and clickable
-links. You can bring your own template (PPTX, PDF or images). The slides can be in any language.
+# 🎞️ latex-slides
 
-![Demo deck](docs/demo.png)
+**Let your coding agent write slides in LaTeX and deliver them as a pixel-identical PDF and PowerPoint deck.**
+
+English · [简体中文](README.zh-CN.md)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Agent Skill](https://img.shields.io/badge/format-Agent%20Skill%20(SKILL.md)-purple)
+![Output](https://img.shields.io/badge/output-PDF%20%2B%20PPTX-orange)
+![Target](https://img.shields.io/badge/target-PowerPoint%20365-c43e1c)
+![Open toolchain](https://img.shields.io/badge/toolchain-TeX%20Live%20%C2%B7%20poppler%20%C2%B7%20python--pptx-brightgreen)
+
+<img alt="Demo deck built with latex-slides" src="docs/demo.png" width="820">
+
+</div>
+
+---
 
 ## Why
 
-- **Typesetting quality.** You get LaTeX maths, TikZ/pgfplots figures and precise layout,
-  and the PDF and the PPTX look identical.
-- **One source.** Content lives in `deck.tex`. Notes, timing and sources live in `deck.yaml`.
-  Everything else is generated.
-- **A fixed process.** The stages are intake → template → outline → scaffold → write →
-  build & verify → deliver, with user checkpoints along the way.
-- **Text plus visuals on every slide (图文并茂).** Every content slide needs a figure,
-  diagram, chart, table or video, and has a text budget. `check.py` enforces both.
-- **Verified output.** Automatic checks cover fonts, overflow, text overlap, the safe area,
-  visuals, the PPTX package, links and video, plus a per-page comparison of the rendered
-  PPTX against the PDF.
+Agents are good at writing LaTeX: equations, TikZ diagrams and pgfplots charts come out
+precise and reproducible. But talks are usually given from PowerPoint, and converting
+between the two by hand loses layout, fonts and speaker notes. Asking an agent to "make a
+PPT" directly tends to produce text-heavy slides with drifting styles and no record of
+where the numbers came from.
 
-The trade-off: slide text in the PPTX is vector outlines, so you cannot edit it in
-PowerPoint. To change a slide, edit the LaTeX and rebuild.
+> **Can one source give a polished PDF *and* a PowerPoint file, follow my template, and be checked before I present it?**
+
+This skill fixes the whole process. Content lives only in LaTeX, notes and sources live in
+one YAML file, and scripts build, convert and verify the deck. Each slide in the PPTX is a
+vector picture that looks exactly like the PDF page, with your speaker notes attached.
+
+## Features
+
+| | |
+|---|---|
+| 📝 **One source of truth** | Slide content is in `deck.tex`; speaker script, timing and sources are in `deck.yaml`. PPTX notes and a printable script are generated from them. Nothing is edited twice. |
+| 🖼 **Vector PPTX** | Every page becomes an SVG (text as outlines) with a PNG fallback in the same picture, so PowerPoint 365 shows crisp vector slides and other viewers still show the PNG. |
+| 🎨 **Bring your own template** | Import a PowerPoint template (layouts, theme colours, theme fonts, placeholder boxes), a PDF, or plain images. A preview with the safe area, title and page-number boxes is generated for you to confirm. A neutral default template is built in. |
+| 🧭 **A fixed seven-stage process** | Intake → template → outline → scaffold → write → build & verify → deliver. The agent stops for your confirmation at intake, template, outline and delivery. |
+| 🖌 **Text plus visuals on every slide** | Every content slide must carry a figure, diagram, chart, table or video, and body text has a budget (≈ 50 English words / 80 CJK characters). `check.py` fails slides that break this. |
+| ✅ **Verified before delivery** | 17 automatic checks: missing glyphs, overfull boxes, text outside the safe area, overlapping text, visuals, timing, SVG hygiene, PPTX package integrity, links, video, and a per-page pixel comparison of the rendered PPTX against the PDF. Then the agent reviews every page image. |
+| 🧪 **Honest sourcing** | Every number and borrowed figure carries a source (`strict` / `normal` / `off`). Verified results are kept apart from plans and illustrative data. |
+| 🎬 **Video and links** | `\lsvideo` puts a clickable poster in the PDF and an embedded movie at the same spot in the PPTX. Hyperlinks stay clickable. |
+| 🌐 **Your language** | The skill is written in English; slides and notes follow the language you ask for. CJK fonts and note labels are configured automatically. |
+| 🗂 **Never overwrites** | Rebuilds write `name_v2`, `name_v3`, … and a JSON verification report per version. |
+
+## How it works
+
+```mermaid
+flowchart LR
+    T["Your template<br/>PPTX / PDF / PNG"] -->|import_template.py| Y["template.yaml<br/>+ backgrounds"]
+    Y --> N["new_deck.py"]
+    N --> S["deck.tex<br/>content"]
+    N --> M["deck.yaml<br/>notes · timing · sources"]
+    S -->|XeLaTeX| P["PDF"]
+    P --> V["per-page SVG + PNG"]
+    V --> X["PPTX<br/>notes · video · links"]
+    M --> X
+    P --> C["check.py"]
+    X --> C
+    C -- fail --> S
+    C -- pass --> D["Deliver<br/>PDF · PPTX · notes"]
+```
+
+The agent follows seven stages; ★ marks a stop for your confirmation:
+
+```
+1 Intake ★     purpose · audience · duration · language · template · sourcing level
+2 Template ★   import, fit the safe area, confirm the preview
+3 Outline ★    per slide: claim-style title, key message, planned visual, seconds
+4 Scaffold     new_deck.py creates the project
+5 Write        deck.tex (layout macros) + deck.yaml (script, sources)
+6 Verify       build.py → check.py → page-by-page visual review
+7 Deliver ★    versioned PDF / PPTX / notes + verification report
+```
 
 ## Install
 
-1. Dependencies: TeX Live (XeLaTeX, latexmk, beamer, pgfplots, textpos, xeCJK),
-   poppler-utils, LibreOffice (optional but recommended), and Python ≥ 3.9:
-   ```bash
-   pip install -r requirements.txt
-   python3 scripts/doctor.py
-   ```
-2. Put this folder where your agent discovers skills. For example:
-   - Claude Code: `~/.claude/skills/latex-slides/`
-   - Codex: `~/.codex/skills/latex-slides/`
-   - Gemini CLI / Antigravity: `~/.gemini/config/skills/latex-slides/` or `<project>/.agents/skills/latex-slides/`
-
-   Any agent that reads `SKILL.md` files works. You can also just point your agent at `SKILL.md`.
-
-## Use it by hand
+This is a standard [Agent Skill](https://agentskills.io): a folder with a `SKILL.md`.
+Clone it once, then link it into each agent's skills directory:
 
 ```bash
-# optional: import your template
-python3 scripts/import_template.py my_tpl --pptx lab_template.pptx      # then check my_tpl/preview.png
-# scaffold
-python3 scripts/new_deck.py talks/grpo_20261120 --title "GRPO in Practice" --presenter "Ada" \
-    --language en --duration 900 --template my_tpl
-# edit talks/grpo_20261120/deck.tex and deck.yaml, then
-python3 scripts/build.py talks/grpo_20261120
-python3 scripts/check.py talks/grpo_20261120
+git clone https://github.com/7HHHHH/latex-slides.git ~/.agents/skills/latex-slides
+pip install -r ~/.agents/skills/latex-slides/requirements.txt
+python3 ~/.agents/skills/latex-slides/scripts/doctor.py      # reports anything missing
 ```
 
-Outputs go to `output/<name>.pptx`, `.pdf` and `.notes.md`. Rebuilds write `_v2`, `_v3`, …
-and never overwrite earlier versions.
+| Agent | Command |
+|---|---|
+| Claude Code | `ln -s ~/.agents/skills/latex-slides ~/.claude/skills/latex-slides` |
+| Gemini CLI / Antigravity | `ln -s ~/.agents/skills/latex-slides ~/.gemini/config/skills/latex-slides` |
+| Codex CLI | `ln -s ~/.agents/skills/latex-slides ~/.codex/skills/latex-slides` |
+| Project-only | copy the folder to `<repo>/.agents/skills/` (or `<repo>/.claude/skills/`) |
 
-## Layout
+> [!TIP]
+> Some agents don't support skills natively. For those, add one line to `AGENTS.md`:
+> *"When making slides, follow `~/.agents/skills/latex-slides/SKILL.md`."*
+
+### Requirements
+
+| Component | Used for |
+|---|---|
+| TeX Live / MacTeX / MiKTeX with XeLaTeX, latexmk, beamer, pgfplots, textpos, xeCJK | compiling the deck |
+| poppler-utils (`pdftoppm`, `pdftocairo`, `pdftotext`, `pdfseparate`) | SVG/PNG export, layout checks |
+| LibreOffice *(recommended)* | importing PPTX templates, rendering the PPTX for comparison |
+| Python ≥ 3.9 with `python-pptx`, `lxml`, `PyYAML`, `pypdf`, `Pillow`, `numpy` | building and checking the PPTX |
+
+## Usage
+
+Just ask, in any language:
+
+```text
+Make a 15-minute group-meeting deck from this paper, using my lab template lab.pptx.
+Turn these results into 10 slides for Friday, in English.
+用我们组的模板做一份组会汇报，15 分钟。
+```
+
+The agent asks what it cannot infer, shows you the template preview and the outline, then
+builds and verifies the deck. You get:
 
 ```
-SKILL.md                 procedure and rules the agent follows
-scripts/                 import_template, new_deck, build, check, doctor
-latex/latex-slides.sty   layout macros driven by template.yaml
-templates/default/       neutral built-in template
-references/              macros, template spec, deck.yaml, troubleshooting
-examples/demo/           the deck shown above
-tests/                   end-to-end tests (python3 -m unittest discover -s tests)
+output/<name>.pptx        PowerPoint 365 deck with speaker notes (and videos)
+output/<name>.pdf         the same slides as a vector PDF
+output/<name>.notes.md    printable speaker script
+verify/<name>.json        check results and visual-review notes
 ```
+
+To change anything, ask the agent (or edit `deck.tex` / `deck.yaml` yourself) and rebuild:
+
+```bash
+python3 scripts/build.py talks/my_talk      # → output/<name>_v2.pptx
+python3 scripts/check.py talks/my_talk
+```
+
+## What's inside
+
+```
+SKILL.md                     instructions the agent follows (stages, rules)
+scripts/import_template.py   PPTX / PDF / images → template.yaml + backgrounds + preview
+scripts/new_deck.py          scaffold a deck project
+scripts/build.py             deck.tex → PDF → SVG + PNG → PPTX (notes, links, video)
+scripts/check.py             automatic verification → verify/<version>.json
+scripts/doctor.py            dependency check
+latex/latex-slides.sty       layout macros driven by template.yaml
+templates/default/           neutral built-in template
+references/                  macros, template spec, deck.yaml, troubleshooting
+examples/demo/               the deck shown above
+tests/                       end-to-end tests
+```
+
+## Macros at a glance
+
+Coordinates are in bp from the top-left corner (default page 960 × 540).
+
+| You want… | Macro |
+|---|---|
+| A one-sentence question at the top | `\lead{...}` |
+| Picture left, text right (or the reverse) | `\splitpic[ratio]{file}{caption}{text}` · `\textpic` |
+| A block or image at an exact position | `\at{x}{y}{w}{...}` · `\pic{x}{y}{w}{h}{file}` · `\figat` |
+| A heading with a paragraph | `\point{heading}{text}` |
+| The conclusion at the bottom | `\takeaway{...}` |
+| An embedded video | `\lsvideo{x}{y}{w}{poster}{media/clip.mp4}` |
+| Cover, agenda, section or closing page | `{\lsrole{cover} \begin{frame}[plain] ... \end{frame}}` |
+
+```latex
+\begin{frame}{Group-relative advantages remove the value model}\slideid{grpo}
+\lead{How does GRPO score a response without a critic?}
+\splitpic[0.6]{grpo.png}{Figure: Shao et al. 2024, Fig. 4.}{%
+  \point{Sample}{$G$ answers per prompt.}\vspace{10pt}
+  \point{Normalise}{Reward minus group mean, divided by std.}}
+\takeaway{The learning signal comes from differences inside the group.}
+\end{frame}
+```
+
+See [`references/macros.md`](references/macros.md) for the full list.
+
+## Verify a deck
+
+```bash
+python3 scripts/check.py examples/demo
+```
+
+```text
+PASS  latex.missing_glyphs
+PASS  latex.overfull_boxes
+PASS  layout.text_inside_safe_area
+PASS  layout.text_overlap
+PASS  visual.text_budget
+PASS  visual.every_content_slide_has_visual
+PASS  pptx.integrity
+PASS  render.pptx_vs_pdf
+...
+report: examples/demo/verify/latex-slides_demo.json
+```
+
+Failures stop delivery; warnings (missing scripts, SVG masks, large files) are reported to
+you. The full list is in [`references/deck-yaml.md`](references/deck-yaml.md#checkpy).
 
 ## Compatibility
 
 | Viewer | Result |
 |---|---|
-| PowerPoint 365 (Windows/macOS) | vector SVG slides, notes, video, links (**supported target**) |
+| PowerPoint 365 (Windows / macOS) | Vector SVG slides, notes, embedded video, links — **supported target** |
 | Keynote, Google Slides | PNG fallback (raise `build.png_width` for sharper slides) |
-| LibreOffice Impress | renders; used by `check.py` for comparison |
-| WPS / older Office | may render SVG soft masks badly; use `--raster-only` |
+| LibreOffice Impress | Renders correctly; used by `check.py` for the pixel comparison |
+| WPS, older Office | May draw SVG soft masks badly; rebuild with `--raster-only` |
+
+## FAQ
+
+<details>
+<summary><b>Can I edit the slides in PowerPoint?</b></summary>
+
+Not the text: slides are vector pictures so they look exactly like the PDF on every
+machine, with no font substitution. Edit `deck.tex` and rebuild instead; it takes seconds.
+PowerPoint's "Convert to Shape" works for small graphical touch-ups.
+</details>
+
+<details>
+<summary><b>Why not generate PPTX shapes directly?</b></summary>
+
+Native shapes reflow differently across PowerPoint, Keynote and WPS, and cannot express
+LaTeX maths, TikZ or pgfplots. Rendering from LaTeX keeps one layout everywhere and lets the
+PDF and PPTX be checked against each other.
+</details>
+
+<details>
+<summary><b>Which templates work?</b></summary>
+
+Any PowerPoint template whose design lives in slide layouts (`--pptx`), templates whose
+design lives on sample slides (`--pptx --mode slides`), multi-page PDFs (`--pdf --map`), or
+one image per page type. The importer writes `template.yaml`; adjust the boxes until the
+preview matches. See [`references/template-spec.md`](references/template-spec.md).
+</details>
+
+<details>
+<summary><b>Does it work for languages other than English?</b></summary>
+
+Yes. Set the deck language (for example `zh-CN`, `ja`, `de`); CJK languages load xeCJK and
+CJK fonts automatically, with free fallbacks such as Noto CJK. Right-to-left scripts are not
+supported yet.
+</details>
+
+<details>
+<summary><b>What about overlays like <code>\pause</code>?</b></summary>
+
+Each overlay step becomes its own slide in the PPTX (PowerPoint animations are not
+generated). The speaker notes go on the first step.
+</details>
+
+## Contributing
+
+Issues and PRs are welcome, especially more layout helpers, template importers and viewer
+compatibility fixes. Please run the tests before submitting:
+
+```bash
+python3 -m unittest discover -s tests
+```
 
 ## License
 
-MIT. Templates you import may carry their own copyright, so keep them out of public repos.
+[MIT](LICENSE). Templates you import may carry their own copyright; keep them out of public repositories.
