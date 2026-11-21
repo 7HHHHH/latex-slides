@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import unicodedata
 import shutil
 import subprocess
 import tempfile
@@ -20,7 +21,7 @@ from pathlib import Path
 from lxml import etree
 from pptx import Presentation
 
-from lib.common import die, dump_json, load_template, load_yaml, need, run
+from lib.common import die, dump_json, load_template, load_yaml, need, resolve_template, run
 
 CJK_RE = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uf900-\ufaff]")
 LATIN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z\-']*")
@@ -57,8 +58,14 @@ def inside(w: dict, r: dict, tol: float = 3.0) -> bool:
             w["x1"] <= r["x"] + r["w"] + tol and w["y1"] <= r["y"] + r["h"] + tol)
 
 
+def _punct_only(text: str) -> bool:
+    return bool(text) and all(unicodedata.category(ch).startswith("P") for ch in text)
+
+
 def overlapping(words: list[dict], ratio: float = 0.3) -> tuple[str, str] | None:
-    """First pair of words whose boxes overlap by more than `ratio` of the smaller box."""
+    """First pair of words whose boxes overlap by more than `ratio` of the smaller box.
+    Punctuation-only words are skipped: CJK punctuation compression legitimately overlaps glyph boxes."""
+    words = [w for w in words if not _punct_only(w["text"])]
     for i, a in enumerate(words):
         for b in words[i + 1:]:
             w = min(a["x1"], b["x1"]) - max(a["x0"], b["x0"])
@@ -119,9 +126,9 @@ def main() -> None:
         die("build/manifest.json not found; run scripts/build.py first")
     import json
     man = json.loads(man_path.read_text(encoding="utf-8"))
-    tpl = load_template(deck / cfg.get("template", "template"))
-    checks = {"max_text_units": 80, "duration_tolerance": 0.10, "render_diff_threshold": 12,
-              "max_svg_mb": 5, **(cfg.get("checks") or {})}
+    tpl = load_template(resolve_template(deck, cfg.get("template", "template")))
+    checks = {"max_text_units": 150, "min_text_units": 25, "duration_tolerance": 0.10,
+              "render_diff_threshold": 12, "max_svg_mb": 5, **(cfg.get("checks") or {})}
     slides = {s["id"]: s for s in cfg.get("slides") or []}
     pdf, pptx = Path(man["pdf"]), Path(man["pptx"])
     pages = man["pages"]
@@ -161,7 +168,7 @@ def main() -> None:
     safe, title, num = tpl["safe_area"], tpl["title"], tpl["page_number"]
     page_w, page_h = man["page_size_bp"]
     full = {"x": 0, "y": 0, "w": page_w, "h": page_h}
-    outside, dense, no_visual, overlaps = [], [], [], []
+    outside, dense, sparse, no_visual, overlaps = [], [], [], [], []
     caption_cut = (tpl["sizes"]["caption"] + tpl["sizes"]["detail"]) / 2
     for p in pages:
         words = words_with_boxes(pdf, p["page"])
@@ -175,16 +182,24 @@ def main() -> None:
         if hit:
             overlaps.append(f"p{p['page']}: '{hit[0]}' / '{hit[1]}'")
         if p["role"] in CONTENT_ROLES:
-            body = [w["text"] for w in words if inside(w, safe) and (w["y1"] - w["y0"]) >= caption_cut * 0.9]
-            units = text_units(body)
+            body = [w for w in words if inside(w, safe) and (w["y1"] - w["y0"]) >= caption_cut * 0.9]
+            units = text_units([w["text"] for w in body])
+            # density ignores the \lead line and the \takeaway band, which every slide has anyway
+            band = (safe["y"] + 48, safe["y"] + safe["h"] - 44)
+            inner = text_units([w["text"] for w in body if band[0] <= w["y0"] and w["y1"] <= band[1]])
             p["text_units"] = round(units, 1)
             if units > checks["max_text_units"]:
                 dense.append(f"p{p['page']} ({units:.0f} > {checks['max_text_units']})")
+            elif inner < checks["min_text_units"] and p["visuals"] < 2 and not p["continued"]:
+                sparse.append(f"p{p['page']} ({inner:.0f} < {checks['min_text_units']})")
             if p["visuals"] == 0 and not slides[p["id"]].get("text_only_reason"):
                 no_visual.append(f"p{p['page']} ({p['id']})")
     r.add("layout.text_inside_safe_area", not outside, "; ".join(outside[:10]))
     r.add("layout.text_overlap", not overlaps, "; ".join(overlaps[:10]))
     r.add("visual.text_budget", not dense, "too much body text: " + ", ".join(dense))
+    r.add("visual.information_density", not sparse,
+          "sparse slides (little explanation and a single visual; add numbers, labels or a second visual): "
+          + ", ".join(sparse), level="warn")
     r.add("visual.every_content_slide_has_visual", not no_visual,
           "no figure/diagram/chart/table: " + ", ".join(no_visual))
 
@@ -251,7 +266,7 @@ def main() -> None:
             td = Path(td)
             rendered = render_pptx(pptx, td)
             if rendered is None:
-                r.add("render.pptx_vs_pdf", True, "skipped: LibreOffice not available or failed", level="warn")
+                r.add("render.pptx_vs_pdf", False, "skipped: LibreOffice not available or failed", level="warn")
             else:
                 pa, pb = raster(pdf, td / "pdf"), raster(rendered, td / "ppt")
                 if len(pa) != len(pb):

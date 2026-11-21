@@ -11,12 +11,13 @@ duration_seconds: 900        # check.py compares with the sum of slide seconds
 sourcing: normal             # strict: every content slide must list sources (FAIL)
                              # normal: missing sources -> WARN;  off: not checked
 output_name: GRPO_in_Practice_2026-11-20    # output/<name>[_vN].pptx|pdf|notes.md
-template: template           # template directory, relative to the deck
+template: template           # template directory relative to the deck, or a built-in name (paper, default)
 build:
   svg: true                  # false = PNG-only slides (same as --raster-only)
   png_width: 1920            # PNG fallback resolution (px)
 checks:
-  max_text_units: 80         # CJK chars + 1.6 x English words of body text per content slide
+  max_text_units: 150        # CJK chars + 1.6 x English words of body text per content slide
+  min_text_units: 25         # below this (lead/takeaway excluded) and with < 2 visuals: density WARN
   duration_tolerance: 0.10
   render_diff_threshold: 12  # mean abs pixel diff (0-255) PDF vs LibreOffice-rendered PPTX
   max_svg_mb: 5
@@ -48,11 +49,13 @@ unused, or two frames share an id.
 | overlapping text (e.g. a wrapped caption running into the takeaway) | FAIL |
 | content slide without visual (no `text_only_reason`) | FAIL |
 | body text over budget | FAIL |
+| content slide with almost no explanation and a single visual | WARN |
 | SVG contains live `<text>` | FAIL |
 | PPTX integrity: svgBlip present, notes present, relationships resolve, videos | FAIL |
 | hyperlinks preserved | FAIL |
 | PPTX rendered by LibreOffice differs from PDF | FAIL |
 | missing scripts, missing sources (normal), SVG masks, large SVG, minor overfull | WARN |
+| PPTX-vs-PDF render skipped (LibreOffice missing or failed) | WARN |
 
 The report goes to `verify/<version>.json`; record the visual review in its
 `visual_review` field.

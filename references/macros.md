@@ -41,6 +41,38 @@ Every frame needs `\slideid{<id>}` matching an entry in `deck.yaml`.
 | `\textpic[ratio]{file}{caption}{text}` | text left, picture right |
 | `\lsvideo{x}{y}{w}{poster}{media/file.mp4}` | poster in PDF (click opens file), embedded movie in PPTX |
 
+## Dense layouts
+
+For slides that carry a visual *and* its evidence: a row of figures, a grid of cards, headline numbers.
+
+```latex
+\begin{lsgrid}[top]{n}      % n cells per row across the safe area; top defaults to \lsContentTop
+  \card{title}{text}                 % tinted card with a heading
+  \cardpic[h]{file}{title}{text}     % picture (height h bp, default 110) above heading + text
+  \fig[h]{file}{caption}             % framed picture (default 150 bp) + caption
+\end{lsgrid}
+```
+
+Cells flow left to right and wrap after `n`; mix cell types freely. Pictures in `\cardpic`
+and `\fig` count as visuals. Use two grids at different `top` values for a figure row
+above a card row.
+
+| Macro | Use |
+|---|---|
+| `\stat{value}{label}` | a big headline number with a small label (inside `\at`, a card or a cell) |
+| `\callout{text}` | emphasised sentence with an accent bar |
+
+```latex
+\begin{lsgrid}[150]{3}
+\fig[120]{baseline.png}{Baseline}  \fig[120]{ours.png}{Ours}  \fig[120]{diff.png}{Difference}
+\end{lsgrid}
+\begin{lsgrid}[310]{3}
+\card{\stat{+3.5 pt}{AUROC}}{Mean over 15 classes.}
+\card{\stat{2.3×}{faster}}{41 s vs. 95 s per epoch.}
+\card{Caveat}{Seed 0 only; three seeds are running.}
+\end{lsgrid}
+```
+
 ## Text styles
 
 | Macro | Use |
@@ -55,9 +87,10 @@ Every frame needs `\slideid{<id>}` matching an entry in `deck.yaml`.
 
 ## Visual detection
 
-`check.py` counts visuals per page. `\pic`, `\figat`, `\splitpic`, `\textpic`, `\lsvideo`,
-`tikzpicture` (including pgfplots), `tabular` and `tabularx` count automatically. For any
-other visual (e.g. a raw `\includegraphics`), add `\lsMarkVisual` inside the frame.
+`check.py` counts visuals per page. Every `\includegraphics` (and so `\pic`, `\figat`,
+`\splitpic`, `\textpic`, `\fig`, `\cardpic`), `\lsvideo`, `tikzpicture` (including pgfplots),
+`tabular` and `tabularx` count automatically; template backgrounds do not. For anything
+else (e.g. a picture drawn with `\pgfimage`), add `\lsMarkVisual` inside the frame.
 
 ## Typical body slide
 

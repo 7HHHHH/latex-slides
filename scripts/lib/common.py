@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -60,9 +61,42 @@ DEFAULT_TEMPLATE = {
     "fonts": {
         "latin": {"heading": ["Arial", "TeX Gyre Heros"], "body": ["Times New Roman", "TeX Gyre Termes"]},
         "cjk": {"heading": ["Microsoft YaHei", "Noto Sans CJK SC"], "body": ["SimSun", "Noto Serif CJK SC"]},
+        "math": ["TeX Gyre Termes Math", "Latin Modern Math"],
     },
-    "sizes": {"title": 24, "heading": 21, "body": 20, "detail": 18, "caption": 13, "number": 14},
+    "sizes": {"title": 24, "heading": 19, "body": 17, "detail": 15, "caption": 12, "number": 12},
 }
+
+# CJK font chains for languages other than Simplified Chinese; a template can override any of
+# them with fonts.cjk_<key> (e.g. fonts.cjk_ja: {heading: [...], body: [...]}).
+CJK_LANG_FONTS = {
+    "ja": {"heading": ["Yu Gothic", "Hiragino Sans", "Noto Sans CJK JP", "Source Han Sans JP"],
+           "body": ["Yu Mincho", "Hiragino Mincho ProN", "Noto Serif CJK JP", "Noto Sans CJK JP"]},
+    "ko": {"heading": ["Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Source Han Sans KR"],
+           "body": ["Batang", "Noto Serif CJK KR", "Noto Sans CJK KR"]},
+    "hant": {"heading": ["Microsoft JhengHei", "PingFang TC", "Noto Sans CJK TC", "Noto Sans CJK HK"],
+             "body": ["PMingLiU", "Songti TC", "Noto Serif CJK TC", "Noto Sans CJK TC"]},
+}
+
+
+def lang_key(language: str) -> str:
+    """'en', 'zh' (Simplified), 'hant' (Traditional), 'ja' or 'ko'."""
+    low = (language or "en").lower().replace("_", "-")
+    base = low.split("-")[0]
+    if base == "zh":
+        return "hant" if any(t in low for t in ("-tw", "-hk", "-mo", "hant")) else "zh"
+    return base if base in ("ja", "ko") else "en"
+
+
+def resolve_template(deck_dir: Path, value: str | None) -> Path:
+    """Template dir from deck.yaml: a path relative to the deck, or the name of a built-in template."""
+    value = value or "template"
+    cand = (deck_dir / value)
+    if (cand / "template.yaml").exists():
+        return cand.resolve()
+    builtin = SKILL_ROOT / "templates" / value
+    if (builtin / "template.yaml").exists():
+        return builtin
+    die(f"template '{value}' not found (looked in {cand} and {builtin})")
 
 
 def merge(base: dict, over: dict) -> dict:
@@ -105,7 +139,8 @@ def is_cjk(language: str) -> bool:
 
 
 def write_ls_config(deck_dir: Path, template_rel: str, language: str) -> Path:
-    tdir = deck_dir / template_rel
+    tdir = resolve_template(deck_dir, template_rel)
+    template_rel = Path(os.path.relpath(tdir, deck_dir)).as_posix()
     t = load_template(tdir)
     for key in ("page_size", "safe_area", "title", "page_number"):   # TeX \numexpr needs integers
         t[key] = {k: int(round(float(v))) for k, v in t[key].items()}
@@ -129,8 +164,14 @@ def write_ls_config(deck_dir: Path, template_rel: str, language: str) -> Path:
     lines.append(_font_chain("\\setmainfont", body))
     lines.append(_font_chain("\\setsansfont", body))
     lines.append(_font_chain("\\newfontfamily\\lsHeadingLatin", heading))
+    math = _font_list(t["fonts"].get("math")) or ["Latin Modern Math"]
+    lines.append("\\RequirePackage{unicode-math}")
+    lines.append(_font_chain("\\setmathfont", math + (["Latin Modern Math"] if "Latin Modern Math" not in math else [])))
     if is_cjk(language):
         lines.append("\\RequirePackage{xeCJK}\\xeCJKsetup{CJKspace=true}")
+        key = lang_key(language)
+        if key != "zh":
+            cjk = t["fonts"].get(f"cjk_{key}") or CJK_LANG_FONTS[key]
         cb, ch = _font_list(cjk.get("body")), _font_list(cjk.get("heading"))
         lines.append(_font_chain("\\setCJKmainfont", cb, "[AutoFakeBold=1.6]"))
         lines.append(_font_chain("\\setCJKsansfont", cb, "[AutoFakeBold=1.6]"))

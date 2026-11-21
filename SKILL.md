@@ -44,13 +44,20 @@ template (file or "default"), deliverables (PDF, PPTX or both), sourcing level
 embed, deadline. Collect the source material (papers, data, figures, notes).
 
 ### 2. Template
-- No template: use `SKILL_DIR/templates/default`.
+- No template: use a built-in one, `SKILL_DIR/templates/paper` (warm paper, indigo and terracotta,
+  serif headings) or `SKILL_DIR/templates/default` (white, navy and blue). Pass the name to
+  `new_deck.py --template paper`.
 - User template:
   ```bash
   python3 SKILL_DIR/scripts/import_template.py <deck_parent>/template_src --pptx their.pptx
   # or --pdf bg.pdf --map cover=1,body=2,closing=3   or --cover a.png --body b.png ...
   ```
   For PPTX, open `layouts.png`, choose layouts, rerun with `--map body=N,cover=N,... --force`.
+  If every layout is blank (the design lives on the slides), use `--mode slides`: run it once
+  without `--map` to get `slides.png`, then pick the cleanest slide per role. A slide that is a
+  single full-page picture (an exported deck) already contains its text; ask for the original
+  template or an empty background instead. Read the importer's warnings: it reports boxes that
+  cover background decoration and colours it sampled from PDF/image backgrounds.
   Open `preview.png`: the green box (safe area) must cover the free content region of the
   body background, blue = title, red = page number. Edit `template.yaml` (boxes, palette,
   fonts) until it matches the template, regenerate the preview, and show it to the user ★.
@@ -71,7 +78,8 @@ Creates `deck.tex`, `deck.yaml`, `template/`, `assets/`, `media/`, `output/`, `v
 ### 5. Write
 - `deck.tex`: one `frame` per outline row, each with `\slideid{<id>}`. Use the layout
   macros in `references/macros.md` (`\lead`, `\splitpic`, `\textpic`, `\figat`, `\at`,
-  `\pic`, `\point`, `\takeaway`, `\lsvideo`, `\lsrole{cover|agenda|section|closing}`).
+  `\pic`, `\point`, `\takeaway`, `\lsvideo`, `\lsrole{cover|agenda|section|closing}`, and the
+  dense layouts `lsgrid` with `\card`, `\cardpic`, `\fig`, `\stat`, `\callout`).
   Absolute coordinates are bp from the top-left corner; keep content inside the safe area.
 - `deck.yaml`: for every id, `title`, `seconds`, `script` (what the speaker says, spoken
   style, ending with a bridge to the next slide) and `sources`. This file is the only
@@ -101,14 +109,18 @@ change.
 
 1. **Single source.** Content in `deck.tex`, notes/timing/sources in `deck.yaml`. Never
    edit the generated PPTX, `ls-config.tex` or files in `build/`.
-2. **Text and visuals on every slide (图文并茂).** Every content slide carries at least one
-   visual: original figure, TikZ diagram, pgfplots chart, table, screenshot or video.
-   Text explains the visual; it does not duplicate it. Aim for the visual to take
-   40–60 % of the safe area. Body text budget ≈ 80 CJK characters or 50 English words
-   per slide; split the slide instead of shrinking fonts. Preferred visual sources, in
-   order: original figures (cited) → charts/diagrams drawn from real data → schematic
-   diagrams → generated illustrations (label them "illustrative"). A text-only slide
-   needs a `text_only_reason` in `deck.yaml`. check.py enforces this.
+2. **Text and visuals on every slide (图文并茂), with real information.** Every content slide
+   carries at least one visual: original figure, TikZ diagram, pgfplots chart, table,
+   screenshot or video. Text explains the visual and adds what the picture cannot show:
+   the key numbers, the comparison, the conditions. A good content slide has one main
+   visual (40–60 % of the safe area) plus 2–4 annotated points or headline numbers
+   (`\stat`); use `lsgrid` to put several figures, cards or numbers side by side instead of
+   one lonely picture. Body text budget ≈ 150 CJK characters or 90 English words; split the
+   slide instead of shrinking fonts. Slides with almost no explanation get a density
+   warning. Preferred visual sources, in order: original figures (cited) → charts/diagrams
+   drawn from real data → schematic diagrams → generated illustrations (label them
+   "illustrative"). A text-only slide needs a `text_only_reason` in `deck.yaml`. check.py
+   enforces this.
 3. **One message per slide.** Claim-style title, `\lead` states the question, `\takeaway`
    states the conclusion and bridges to the next slide.
 4. **Honest sourcing.** Every number and borrowed figure has a source (per sourcing

@@ -1,0 +1,61 @@
+% Source of the built-in "paper" template backgrounds (5 pages, 960x540 bp).
+% Warm paper ground, deep indigo for structure, terracotta for accents.
+% Rebuild: scripts/dev/build_template.sh paper
+\documentclass{article}
+\usepackage[paperwidth=960bp,paperheight=540bp,margin=0pt]{geometry}
+\usepackage{tikz}
+\definecolor{Paper}{HTML}{F7F4EE}
+\definecolor{Primary}{HTML}{24366B}
+\definecolor{Accent}{HTML}{D2643C}
+\definecolor{Rule}{HTML}{DED8CC}
+\definecolor{Tint}{HTML}{EFE9DD}
+\pagestyle{empty}
+\newcommand{\canvas}[1]{\noindent\begin{tikzpicture}[x=1bp,y=-1bp]
+  \useasboundingbox (0,0) rectangle (960,540);
+  \fill[Paper] (0,0) rectangle (960,540);
+  #1
+\end{tikzpicture}\newpage}
+% dot grid every 18 bp in a rectangle: \dotgrid{x0}{y0}{x1}{y1}{colour}
+\newcommand{\dotgrid}[5]{\pgfmathtruncatemacro\dgx{#1+18}\pgfmathtruncatemacro\dgy{#2+18}%
+  \foreach \x in {#1,\dgx,...,#3}{\foreach \y in {#2,\dgy,...,#4}{\fill[#5] (\x,\y) circle (1.1bp);}}}
+\begin{document}
+% 1 cover: title on paper, presenter on the indigo band, terracotta arc on the right
+\canvas{
+  \begin{scope}
+    \clip (0,0) rectangle (960,400);
+    \fill[Tint] (930,150) circle (250bp);
+    \fill[Accent] (930,150) circle (118bp);
+    \dotgrid{640}{40}{900}{120}{Rule}
+  \end{scope}
+  \fill[Primary] (0,400) rectangle (960,540);
+  \fill[Accent] (88,388) rectangle (208,394);
+}
+% 2 agenda: indigo panel left with a dot pattern
+\canvas{
+  \fill[Primary] (0,0) rectangle (300,540);
+  \begin{scope}
+    \clip (0,0) rectangle (300,540);
+    \dotgrid{20}{430}{280}{520}{Primary!70!white}
+  \end{scope}
+  \fill[Accent] (300,0) rectangle (306,540);
+}
+% 3 section: tint page, terracotta bar, faint large ring
+\canvas{
+  \fill[Tint] (0,0) rectangle (960,540);
+  \draw[Rule,line width=26bp] (820,270) circle (170bp);
+  \fill[Accent] (96,300) rectangle (256,306);
+  \fill[Primary] (0,0) rectangle (16,540);
+}
+% 4 body: small terracotta mark beside the title, hairline above the page number
+\canvas{
+  \fill[Accent] (40,40) rectangle (47,72);
+  \draw[Rule,line width=0.7bp] (56,500) -- (904,500);
+  \fill[Primary] (904,500) circle (2bp);
+}
+% 5 closing: indigo with a terracotta rule and dot corner
+\canvas{
+  \fill[Primary] (0,0) rectangle (960,540);
+  \dotgrid{760}{40}{920}{120}{Primary!70!white}
+  \fill[Accent] (380,318) rectangle (580,324);
+}
+\end{document}

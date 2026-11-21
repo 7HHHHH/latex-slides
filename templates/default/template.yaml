@@ -28,4 +28,6 @@ fonts:
   cjk:
     heading: [Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Source Han Sans SC]
     body: [SimSun, Songti SC, Noto Serif CJK SC, Source Han Serif SC]
-sizes: {title: 24, heading: 21, body: 20, detail: 18, caption: 13, number: 14}
+  math: [TeX Gyre Termes Math, Latin Modern Math]   # unicode-math; matches the Times-style body
+# Dense-but-readable defaults: 17 pt body holds a figure plus 2-3 annotated points per slide.
+sizes: {title: 24, heading: 19, body: 17, detail: 15, caption: 12, number: 12}

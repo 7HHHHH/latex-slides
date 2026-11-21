@@ -153,14 +153,22 @@ def import_pptx(src: Path, mode: str, mapping: dict, out: Path, tmp: Path) -> tu
     palette, fonts = theme_info(orig)
     geometry = {}
     if mode == "slides":
-        if not mapping:
-            die("--mode slides needs --map role=slideNumber,...")
         pdf = soffice_to_pdf(src, tmp)
+        if not mapping:
+            pages = [{"index": i + 1, "name": f"slide {i + 1}"} for i in range(len(orig.slides))]
+            sheet = layout_sheet(pdf, pages, out, tmp, name="slides.png")
+            die(f"wrote {sheet} <- numbered thumbnails of every slide; pick the cleanest page per role and rerun "
+                "with --map cover=N,body=N[,agenda=N,section=N,closing=N] --force")
+        flat = [n for n in mapping.values() if _is_flat_picture(orig.slides[n - 1], orig)]
+        if flat:
+            warn(f"slide(s) {flat} are a single full-page picture: content is baked into the image, so the "
+                 "background will carry that slide's text. Use the original template (or a PDF/PNG of the empty "
+                 "background) instead.")
         files = {}
         for role, num in mapping.items():
             extract_page(pdf, num, out / "bg" / f"{role}.pdf")
             files[role] = f"bg/{role}.pdf"
-        warn("slide mode copies everything on those slides; remove sample text from the template first")
+        warn("slide mode copies everything on those slides; use slides without sample text")
         return page, files, {"palette": palette, "fonts": fonts, **geometry}
 
     prs, layouts, deck = pptx_layout_deck(src, tmp)
@@ -175,9 +183,15 @@ def import_pptx(src: Path, mode: str, mapping: dict, out: Path, tmp: Path) -> tu
             guessed[role] = lay["index"]
         print(f"  {lay['index']:>2}  {lay['name']:<32} {('-> ' + role) if role else ''}")
     chosen = {**guessed, **mapping}
+    hint = ""
+    if len(_blank_pages(pdf, tmp)) == len(layouts):
+        hint = (" Every layout renders as an empty white page, so the design probably lives on the slides"
+                + (f" ({len(orig.slides)} in this file): try --mode slides (run it without --map first to get "
+                   "a numbered sheet)." if len(orig.slides) else "."))
+        warn(hint.strip())
     if "body" not in chosen:
         die("could not identify a body layout; look at layouts.png and pass --map body=N[,cover=N,...]"
-            " (rerun with --force)")
+            " (rerun with --force)." + hint)
     files = {}
     for role, num in chosen.items():
         extract_page(pdf, num, out / "bg" / f"{role}.pdf")
@@ -193,7 +207,95 @@ def import_pptx(src: Path, mode: str, mapping: dict, out: Path, tmp: Path) -> tu
     return page, files, {"palette": palette, "fonts": fonts, **{k: v for k, v in geometry.items() if v}}
 
 
-def layout_sheet(pdf: Path, layouts: list, out: Path, tmp: Path) -> Path:
+def _is_flat_picture(slide, prs) -> bool:
+    """True if the slide is just one picture covering (almost) the whole page."""
+    shapes = list(slide.shapes)
+    if len(shapes) != 1 or shapes[0].shape_type != 13:   # MSO_SHAPE_TYPE.PICTURE
+        return False
+    sh = shapes[0]
+    return sh.width >= 0.95 * prs.slide_width and sh.height >= 0.95 * prs.slide_height
+
+
+def _blank_pages(pdf: Path, tmp: Path) -> list[int]:
+    """1-based pages that render as (almost) uniform white."""
+    import numpy as np
+    prefix = tmp / "blank"
+    run(["pdftoppm", "-png", "-scale-to-x", "160", "-scale-to-y", "-1", str(pdf), str(prefix)])
+    out = []
+    for i, f in enumerate(sorted(tmp.glob("blank-*.png")), 1):
+        a = np.asarray(Image.open(f).convert("L"), dtype=np.int16)
+        if (a < 245).mean() < 0.002:
+            out.append(i)
+    return out
+
+
+def palette_from_background(paths: list[Path]) -> dict:
+    """primary (dark, for headings) and accent (saturated) sampled from the background pages."""
+    import colorsys
+    tiles = []
+    with tempfile.TemporaryDirectory() as td:
+        for i, path in enumerate(paths):
+            if path.suffix.lower() == ".pdf":
+                run(["pdftoppm", "-png", "-singlefile", "-scale-to-x", "320", "-scale-to-y", "-1", str(path), f"{td}/p{i}"])
+                im = Image.open(f"{td}/p{i}.png").convert("RGB")
+            else:
+                im = Image.open(path).convert("RGB")
+                im.thumbnail((320, 320))
+            tiles.append(im)
+    sheet = Image.new("RGB", (max(t.width for t in tiles), sum(t.height for t in tiles)))
+    y = 0
+    for t in tiles:
+        sheet.paste(t, (0, y))
+        y += t.height
+    q = sheet.quantize(colors=32, method=Image.Quantize.MEDIANCUT)
+    pal, total = q.getpalette(), sheet.width * sheet.height
+    cands = []
+    for count, idx in q.getcolors():
+        r, g, b = pal[idx * 3:idx * 3 + 3]
+        h, l, s_ = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        if s_ > 0.3 and 0.12 < l < 0.8 and count > 0.002 * total:
+            cands.append({"h": h, "l": l, "s": s_, "hex": f"#{r:02X}{g:02X}{b:02X}"})
+    if not cands:
+        return {}
+    accent = max(cands, key=lambda c: c["s"] * (1 - abs(c["l"] - 0.5) * 1.6))
+    dark = min(cands, key=lambda c: c["l"])
+    if dark["l"] > 0.38:   # no dark colour in the template: darken the accent for headings
+        r, g, b = (round(v * 255) for v in colorsys.hls_to_rgb(accent["h"], 0.28, min(1.0, accent["s"])))
+        primary = f"#{r:02X}{g:02X}{b:02X}"
+    else:
+        primary = dark["hex"]
+    return {"primary": primary, "accent": accent["hex"]}
+
+
+def box_clutter(t: dict, out: Path) -> dict[str, float]:
+    """Share of each box on the body background covered by decoration (pixels unlike the page colour)."""
+    import numpy as np
+    f = t["backgrounds"].get("body")
+    if not f:
+        return {}
+    path, W = out / f, 480
+    with tempfile.TemporaryDirectory() as td:
+        if path.suffix.lower() == ".pdf":
+            run(["pdftoppm", "-png", "-singlefile", "-scale-to-x", str(W), "-scale-to-y", "-1", str(path), f"{td}/b"])
+            im = Image.open(f"{td}/b.png").convert("RGB")
+        else:
+            im = Image.open(path).convert("RGB").resize((W, round(W * t["page_size"]["height_bp"] / t["page_size"]["width_bp"])))
+    a = np.asarray(im, dtype=np.int16)
+    vals, counts = np.unique(a.reshape(-1, 3) // 8, axis=0, return_counts=True)
+    page = vals[counts.argmax()] * 8 + 4
+    ink = np.abs(a - page).sum(axis=2) > 40
+    sc = W / t["page_size"]["width_bp"]
+    out_d = {}
+    for key in ("title", "safe_area"):
+        b = t[key]
+        x0, y0 = int(b["x"] * sc), int(b["y"] * sc)
+        x1, y1 = int((b["x"] + b["w"]) * sc), int((b["y"] + b["h"]) * sc)
+        region = ink[max(y0, 0):y1, max(x0, 0):x1]
+        out_d[key] = float(region.mean()) if region.size else 0.0
+    return out_d
+
+
+def layout_sheet(pdf: Path, layouts: list, out: Path, tmp: Path, name: str = "layouts.png") -> Path:
     run(["pdftoppm", "-png", "-scale-to-x", "400", "-scale-to-y", "-1", str(pdf), str(tmp / "lay")])
     ims = [Image.open(f).convert("RGB") for f in sorted(tmp.glob("lay-*.png"))]
     w, h, cols = ims[0].width, ims[0].height, 3
@@ -203,7 +305,7 @@ def layout_sheet(pdf: Path, layouts: list, out: Path, tmp: Path) -> Path:
         d.rectangle([0, 0, w, 20], fill="white")
         d.text((6, 4), f"{lay['index']}: {lay['name']}"[:60], fill="black")
         sheet.paste(im, ((i % cols) * (w + 10), (i // cols) * (h + 10)))
-    dest = out / "layouts.png"
+    dest = out / name
     sheet.save(dest)
     return dest
 
@@ -302,6 +404,10 @@ def main() -> None:
     a = ap.parse_args()
     need("pdfseparate", "pdftoppm")
 
+    for flag in ["pptx", "pdf", *ROLES]:
+        f = getattr(a, flag)
+        if f is not None and not f.is_file():
+            die(f"--{flag}: file not found: {f}")
     out = a.out_dir.resolve()
     if out.exists():
         if not a.force:
@@ -324,7 +430,12 @@ def main() -> None:
     t["page_size"] = page
     t["name"] = a.name or out.name
     t["backgrounds"] = {r: files.get(r) for r in ROLES}
-    t["palette"] = {**t["palette"], "inverse": "#FFFFFF", **extra.get("palette", {})}
+    sampled = {}
+    if not extra.get("palette") and files.get("body"):
+        sampled = palette_from_background([out / f for f in dict.fromkeys(files.values())])
+        if sampled:
+            print(f"palette sampled from the background: {sampled} (check it against the template)")
+    t["palette"] = {**t["palette"], "inverse": "#FFFFFF", **sampled, **extra.get("palette", {})}
     for key in ("safe_area", "title", "page_number"):
         if extra.get(key):
             t[key] = extra[key]
@@ -348,6 +459,10 @@ def main() -> None:
                  "# palette and fonts so they match the template. Coordinates: bp from the top-left corner.\n")
         yaml.safe_dump({k: t[k] for k in order}, fh, allow_unicode=True, sort_keys=False, width=100)
     print(f"wrote {out / 'template.yaml'}")
+    for key, share in box_clutter(t, out).items():
+        if share > 0.02:
+            warn(f"{key} box overlaps background decoration ({share:.0%} of its area): move or shrink it "
+                 f"(--{'title' if key == 'title' else 'safe'} x,y,w,h) so slide content does not sit on the design")
     print(f"wrote {preview(out, t)}  <- check the boxes before using the template")
 
 

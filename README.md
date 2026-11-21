@@ -38,10 +38,10 @@ vector picture that looks exactly like the PDF page, with your speaker notes att
 |---|---|
 | 📝 **One source of truth** | Slide content is in `deck.tex`; speaker script, timing and sources are in `deck.yaml`. PPTX notes and a printable script are generated from them. Nothing is edited twice. |
 | 🖼 **Vector PPTX** | Every page becomes an SVG (text as outlines) with a PNG fallback in the same picture, so PowerPoint 365 shows crisp vector slides and other viewers still show the PNG. |
-| 🎨 **Bring your own template** | Import a PowerPoint template (layouts, theme colours, theme fonts, placeholder boxes), a PDF, or plain images. A preview with the safe area, title and page-number boxes is generated for you to confirm. A neutral default template is built in. |
+| 🎨 **Bring your own template** | Import a PowerPoint template (layouts, theme colours, theme fonts, placeholder boxes), a PDF, or plain images. A preview with the safe area, title and page-number boxes is generated for you to confirm; colours are sampled from PDF/image backgrounds, and boxes that cover the design are flagged. Two templates are built in: `paper` (warm, serif headings, shown above) and `default` (navy and blue). |
 | 🧭 **A fixed seven-stage process** | Intake → template → outline → scaffold → write → build & verify → deliver. The agent stops for your confirmation at intake, template, outline and delivery. |
-| 🖌 **Text plus visuals on every slide** | Every content slide must carry a figure, diagram, chart, table or video, and body text has a budget (≈ 50 English words / 80 CJK characters). `check.py` fails slides that break this. |
-| ✅ **Verified before delivery** | 17 automatic checks: missing glyphs, overfull boxes, text outside the safe area, overlapping text, visuals, timing, SVG hygiene, PPTX package integrity, links, video, and a per-page pixel comparison of the rendered PPTX against the PDF. Then the agent reviews every page image. |
+| 🖌 **Text plus visuals, and real information** | Every content slide must carry a figure, diagram, chart, table or video, plus the numbers and comparisons that explain it. Dense layouts (`lsgrid` with cards, figure rows and headline `\stat`s) fit a visual and its evidence on one slide. `check.py` fails slides without a visual or over the text budget (≈ 90 English words / 150 CJK characters) and warns on near-empty ones. |
+| ✅ **Verified before delivery** | 18 automatic checks: missing glyphs, overfull boxes, text outside the safe area, overlapping text, visuals, information density, timing, SVG hygiene, PPTX package integrity, links, video, and a per-page pixel comparison of the rendered PPTX against the PDF. Then the agent reviews every page image. |
 | 🧪 **Honest sourcing** | Every number and borrowed figure carries a source (`strict` / `normal` / `off`). Verified results are kept apart from plans and illustrative data. |
 | 🎬 **Video and links** | `\lsvideo` puts a clickable poster in the PDF and an embedded movie at the same spot in the PPTX. Hyperlinks stay clickable. |
 | 🌐 **Your language** | The skill is written in English; slides and notes follow the language you ask for. CJK fonts and note labels are configured automatically. |
@@ -145,7 +145,8 @@ scripts/build.py             deck.tex → PDF → SVG + PNG → PPTX (notes, lin
 scripts/check.py             automatic verification → verify/<version>.json
 scripts/doctor.py            dependency check
 latex/latex-slides.sty       layout macros driven by template.yaml
-templates/default/           neutral built-in template
+templates/paper/             built-in template: warm paper, indigo and terracotta
+templates/default/           built-in template: white, navy and blue
 references/                  macros, template spec, deck.yaml, troubleshooting
 examples/demo/               the deck shown above
 tests/                       end-to-end tests

@@ -73,6 +73,61 @@ class PipelineTest(unittest.TestCase):
         self.assertNotEqual(res.returncode, 0)
         self.assertIn("every_content_slide_has_visual", res.stdout)
 
+    def test_raw_includegraphics_counts_as_visual(self):
+        deck = self.build_deck("en")
+        from PIL import Image
+        Image.new("RGB", (400, 300), "#3F86D8").save(deck / "assets" / "fig.png")
+        tex = (deck / "deck.tex").read_text(encoding="utf-8")
+        start = tex.index("\\begin{tikzpicture}")
+        end = tex.index("\\end{tikzpicture}") + len("\\end{tikzpicture}")
+        (deck / "deck.tex").write_text(tex[:start] + "\\includegraphics[width=300bp]{fig.png}" + tex[end:],
+                                       encoding="utf-8")
+        py(SCRIPTS / "build.py", deck)
+        res = py(SCRIPTS / "check.py", deck, "--no-render", check=False)
+        self.assertEqual(res.returncode, 0, res.stdout)
+        man = json.loads((deck / "build" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual([p["visuals"] for p in man["pages"]], [0, 0, 0, 1, 0])   # backgrounds don't count
+
+    def test_scaffold_duration_matches(self):
+        deck = self.tmp / "dur"
+        py(SCRIPTS / "new_deck.py", deck, "--title", "T", "--duration", "600", "--template", "paper")
+        import yaml
+        cfg = yaml.safe_load((deck / "deck.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(sum(s["seconds"] for s in cfg["slides"]), 600)
+        self.assertTrue((deck / "template" / "bg" / "body.pdf").exists())
+
+    def test_japanese_labels_and_fonts(self):
+        deck = self.build_deck("ja")
+        cfg = (deck / "ls-config.tex").read_text(encoding="utf-8")
+        self.assertIn("Noto Sans CJK JP", cfg)
+        self.assertNotIn("SimSun", cfg)
+        notes = next((deck / "output").glob("*.notes.md")).read_text(encoding="utf-8")
+        self.assertIn("目安時間", notes)
+
+    def test_builtin_template_by_name(self):
+        deck = self.build_deck("en")
+        cfg = (deck / "deck.yaml").read_text(encoding="utf-8")
+        (deck / "deck.yaml").write_text(cfg.replace("template: template", "template: paper"), encoding="utf-8")
+        shutil.rmtree(deck / "template")
+        py(SCRIPTS / "build.py", deck)
+        self.assertIn("templates/paper/bg/body.pdf", (deck / "ls-config.tex").read_text(encoding="utf-8"))
+
+    def test_sparse_slide_warns(self):
+        deck = self.build_deck("en")
+        tex = (deck / "deck.tex").read_text(encoding="utf-8")
+        start = tex.index("\\at{56}{\\lsContentTop}{380}")
+        end = tex.index("\\at{470}")
+        (deck / "deck.tex").write_text(tex[:start] + tex[end:], encoding="utf-8")
+        py(SCRIPTS / "build.py", deck)
+        res = py(SCRIPTS / "check.py", deck, "--no-render", check=False)
+        self.assertIn("WARN  visual.information_density", res.stdout)
+
+    def test_import_missing_file(self):
+        res = py(SCRIPTS / "import_template.py", self.tmp / "t", "--pptx", self.tmp / "nope.pptx", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("file not found", res.stderr)
+        self.assertNotIn("Traceback", res.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

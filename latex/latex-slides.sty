@@ -5,8 +5,9 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{latex-slides}[2026/11/20 v1.0 latex-slides layout layer]
 
+\usefonttheme{professionalfonts}   % keep beamer from replacing the math fonts set in ls-config.tex
 \RequirePackage{fontspec}
-\RequirePackage{graphicx,booktabs,tabularx,array,amsmath,amssymb,colortbl}
+\RequirePackage{graphicx,booktabs,tabularx,array,amsmath,colortbl}
 \RequirePackage{tikz,pgfplots}
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{positioning,arrows.meta,calc,shapes.geometric,fit,backgrounds}
@@ -35,6 +36,9 @@
 \newcommand{\slideid}[1]{\ls@write{id\space\thepage\space #1}}
 \newcommand{\lsMarkVisual}{\ls@write{visual\space\thepage}}
 \AtBeginEnvironment{tikzpicture}{\lsMarkVisual}
+% every \includegraphics on a slide counts as a visual; backgrounds use the original command
+\let\ls@includegraphics\includegraphics
+\renewcommand{\includegraphics}{\lsMarkVisual\ls@includegraphics}
 \AtBeginEnvironment{tabular}{\lsMarkVisual}
 \AtBeginEnvironment{tabularx}{\lsMarkVisual}
 
@@ -43,7 +47,7 @@
 \newcommand{\ls@bg}[1]{%
   \ifcsname lsBg@#1\endcsname
     \edef\ls@file{\csname lsBg@#1\endcsname}%
-    \ifx\ls@file\@empty\else\includegraphics[width=\paperwidth,height=\paperheight]{\ls@file}\fi
+    \ifx\ls@file\@empty\else\ls@includegraphics[width=\paperwidth,height=\paperheight]{\ls@file}\fi
   \fi}
 \setbeamertemplate{background canvas}{%
   \ls@write{page\space\thepage\space\ls@role}%
@@ -119,6 +123,46 @@
   \pgfmathtruncatemacro\ls@h{\lsContentBottom-\lsContentTop-24}%
   \at{\lsSafeX}{\lsContentTop}{\ls@lw}{#4}%
   \figat{\ls@rx}{\lsContentTop}{\ls@rw}{\ls@h}{#2}{#3}}
+
+% ---------------------------------------------------------------- dense layouts
+% Cards, figure rows and numbers let one slide carry a visual plus its evidence.
+%   \begin{lsgrid}[top]{n} \card{title}{text} \cardpic[h]{file}{title}{text} \fig[h]{file}{caption} \end{lsgrid}
+% Cells flow left to right, n per row, across the safe-area width, starting at y = top
+% (default \lsContentTop). Pictures in \cardpic and \fig count as visuals.
+\colorlet{lsCard}{lsAccent!7}
+\newlength\ls@cellw \newlength\ls@gap \newcount\ls@cells \newcount\ls@cols
+\newenvironment{lsgrid}[2][\lsContentTop]{%
+  \begin{textblock*}{\lsSafeW bp}(\lsSafeX bp,#1 bp)%
+  \global\ls@cols=#2\relax\global\ls@cells=0\relax\setlength\ls@gap{16bp}%
+  \setlength\ls@cellw{\dimexpr(\lsSafeW bp-\ls@gap*(#2-1))/#2\relax}%
+  \fontsize{\lsSizeBody}{\lsLeadBody}\selectfont\noindent\ignorespaces}
+  {\par\end{textblock*}}
+\newcommand{\ls@cellstart}{%
+  \ifnum\ls@cells>0\relax
+    \ifnum\numexpr\ls@cells-(\ls@cells/\ls@cols)*\ls@cols\relax=0\relax\par\vspace{12bp}\noindent
+    \else\hspace{\ls@gap}\fi
+  \fi\global\advance\ls@cells by 1\relax}
+% \card{title}{text}: tinted box with a heading
+\newcommand{\card}[2]{\ls@cellstart{\setlength\fboxsep{9bp}\colorbox{lsCard}{%
+  \begin{minipage}[t]{\dimexpr\ls@cellw-18bp\relax}\raggedright\heading{#1}\vspace{3bp}%
+  {\fontsize{\lsSizeDetail}{\lsLeadDetail}\selectfont #2\par}\end{minipage}}}\ignorespaces}
+% \cardpic[h]{file}{title}{text}: picture of height h (default 110bp) above a card
+\newcommand{\cardpic}[4][110]{\ls@cellstart\begin{minipage}[t]{\ls@cellw}\vspace{0pt}\centering
+  \includegraphics[width=\ls@cellw,height=#1bp,keepaspectratio]{#2}\par\vspace{6bp}\raggedright
+  \heading{#3}\vspace{3bp}{\fontsize{\lsSizeDetail}{\lsLeadDetail}\selectfont #4\par}\end{minipage}\ignorespaces}
+% \fig[h]{file}{caption}: framed picture of height h (default 150bp) with a caption
+% (the hairline frame keeps screenshots on the same colour as the slide visible)
+\newcommand{\fig}[3][150]{\ls@cellstart\begin{minipage}[t]{\ls@cellw}\vspace{0pt}\centering
+  {\setlength\fboxsep{0pt}\setlength\fboxrule{0.6bp}\fcolorbox{lsRule}{white}{%
+  \includegraphics[width=\dimexpr\ls@cellw-1.2bp\relax,height=#1bp,keepaspectratio]{#2}}}\par\vspace{4bp}%
+  {\fontsize{\lsSizeCaption}{\lsLeadCaption}\selectfont\color{lsMuted}#3\par}\end{minipage}\ignorespaces}
+% \stat{value}{label}: a headline number with a short label (use inside \at, \card or a cell)
+% (body font, bold: lining figures in every template)
+\newcommand{\stat}[2]{{\normalfont\fontsize{\the\numexpr\lsSizeHeading*2\relax}{\the\numexpr\lsSizeHeading*2+4\relax}\selectfont
+  \bfseries\color{lsAccent}#1\par}{\fontsize{\lsSizeCaption}{\lsLeadCaption}\selectfont\color{lsMuted}#2\par}}
+% \callout{text}: emphasised sentence with an accent bar (inside \at or a cell)
+\newcommand{\callout}[1]{{\setlength\fboxsep{0pt}\noindent\color{lsAccent}\vrule width 3bp\hspace{8bp}%
+  \begin{minipage}[t]{\dimexpr\linewidth-11bp\relax}\color{lsText}\fontsize{\lsSizeDetail}{\lsLeadDetail}\selectfont #1\par\end{minipage}\par}}
 
 % ---------------------------------------------------------------- video
 % \lsvideo{x}{y}{w}{poster image}{media/file.mp4}

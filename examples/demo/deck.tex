@@ -1,91 +1,143 @@
-% latex-slides demo deck (uses the built-in default template).
+% latex-slides demo deck (uses the built-in "paper" template).
 % Build: python3 scripts/build.py examples/demo && python3 scripts/check.py examples/demo
+% Every number on these slides comes from running the pipeline on this deck (see deck.yaml sources).
 \documentclass[aspectratio=169,t]{beamer}
 \usepackage{latex-slides}
 \graphicspath{{assets/}}
 \hypersetup{colorlinks=true,urlcolor=lsPrimary,linkcolor=lsPrimary,pdftitle={latex-slides},pdfauthor={latex-slides authors}}
 \begin{document}
 
+% ---------------------------------------------------------------- cover
 {\lsrole{cover}
 \begin{frame}[plain]\slideid{cover}
-\at{88}{110}{780}{{\headingfont\fontsize{44}{54}\selectfont\bfseries\color{lsPrimary} latex-slides\par}}
-\at{88}{172}{780}{{\headingfont\fontsize{24}{34}\selectfont\color{lsText} LaTeX as the single source,\\ PowerPoint 365 as the delivery format\par}}
-\at{88}{428}{780}{{\color{lsInverse}\fontsize{20}{30}\selectfont Demo deck\par 2026-11-20}}
+\at{88}{112}{600}{{\headingfont\fontsize{46}{56}\selectfont\bfseries\color{lsPrimary} latex-slides\par}}
+\at{88}{182}{560}{{\headingfont\fontsize{24}{34}\selectfont\color{lsText} One LaTeX source.\\ A vector PDF and a PowerPoint 365 deck,\\ checked before you present.\par}}
+\at{88}{424}{780}{{\color{lsInverse}\fontsize{18}{28}\selectfont Demo deck \quad·\quad built by the pipeline it describes\par 2026-11-21}}
 \end{frame}}
 
+% ---------------------------------------------------------------- agenda
 {\lsrole{agenda}
 \begin{frame}[plain]\slideid{agenda}
-\at{40}{240}{220}{{\headingfont\fontsize{36}{46}\selectfont\bfseries\color{lsInverse} Agenda}}
-\at{370}{150}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 01\quad\color{lsText}\bfseries Pipeline\par}}
-\at{370}{250}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 02\quad\color{lsText}\bfseries Visual rules\par}}
-\at{370}{350}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 03\quad\color{lsText}\bfseries Checks\par}}
+\at{40}{236}{230}{{\headingfont\fontsize{36}{46}\selectfont\bfseries\color{lsInverse} Agenda}}
+\at{370}{132}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 01\quad\color{lsText}\bfseries Pipeline\par}
+  \vspace{2pt}{\fontsize{16}{22}\selectfont\color{lsMuted} one source, two deliverables, one report\par}}
+\at{370}{232}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 02\quad\color{lsText}\bfseries Templates and layouts\par}
+  \vspace{2pt}{\fontsize{16}{22}\selectfont\color{lsMuted} import, fit, then fill with dense layouts\par}}
+\at{370}{332}{520}{{\headingfont\fontsize{28}{40}\selectfont\color{lsAccent} 03\quad\color{lsText}\bfseries Checks\par}
+  \vspace{2pt}{\fontsize{16}{22}\selectfont\color{lsMuted} scripts first, then a page-by-page look\par}}
 \end{frame}}
 
+% ---------------------------------------------------------------- 01 pipeline
 \lsChapter{01}
-\begin{frame}{One source, two deliverables}\slideid{pipeline}
-\lead{Content lives only in LaTeX; everything else is generated.}
-\at{56}{\lsContentTop}{848}{\centering
-\begin{tikzpicture}[x=1bp,y=1bp,node distance=34bp,
-    box/.style={draw=lsAccent,line width=1.3bp,rounded corners=4bp,minimum width=150bp,minimum height=58bp,
-      align=center,font=\headingfont\fontsize{19}{22}\selectfont},
-    res/.style={box,fill=lsAccent!14},
-    sub/.style={font=\fontsize{14}{16}\selectfont\color{lsMuted}},
-    arr/.style={-{Latex[length=8bp]},line width=1.4bp,color=lsPrimary}]
-  \node[box] (tex) {deck.tex\\[-1pt]{\fontsize{14}{16}\selectfont content}};
-  \node[box,right=of tex] (pdf) {PDF\\[-1pt]{\fontsize{14}{16}\selectfont XeLaTeX}};
-  \node[box,right=of pdf] (svg) {SVG + PNG\\[-1pt]{\fontsize{14}{16}\selectfont per page}};
-  \node[res,right=of svg] (pptx) {PPTX\\[-1pt]{\fontsize{14}{16}\selectfont PowerPoint 365}};
-  \node[box,above=24bp of svg] (yaml) {deck.yaml\\[-1pt]{\fontsize{14}{16}\selectfont notes, sources}};
-  \node[box,below=24bp of svg] (chk) {check.py\\[-1pt]{\fontsize{14}{16}\selectfont verify report}};
+\begin{frame}{One source, two deliverables, one report}\slideid{pipeline}
+\lead{Content lives only in LaTeX; the PDF, the PPTX and the notes are generated from it.}
+\at{56}{140}{848}{\centering
+\begin{tikzpicture}[x=1bp,y=1bp,node distance=30bp,
+    box/.style={draw=lsPrimary!60,line width=1.1bp,rounded corners=5bp,minimum width=132bp,minimum height=50bp,
+      align=center,fill=white,font=\headingfont\fontsize{16}{19}\selectfont},
+    res/.style={box,draw=lsAccent,fill=lsAccent!10},
+    arr/.style={-{Latex[length=7bp]},line width=1.2bp,color=lsPrimary}]
+  \node[box] (tex) {deck.tex\\[-1pt]{\fontsize{12}{14}\selectfont\color{lsMuted} slide content}};
+  \node[box,right=of tex] (pdf) {PDF\\[-1pt]{\fontsize{12}{14}\selectfont\color{lsMuted} XeLaTeX}};
+  \node[box,right=of pdf] (svg) {SVG + PNG\\[-1pt]{\fontsize{12}{14}\selectfont\color{lsMuted} one per page}};
+  \node[res,right=of svg] (pptx) {PPTX\\[-1pt]{\fontsize{12}{14}\selectfont\color{lsMuted} notes · links · video}};
+  \node[box,above=12bp of svg] (yaml) {deck.yaml\\[-1pt]{\fontsize{12}{14}\selectfont\color{lsMuted} script · time · sources}};
+  \node[res,below=12bp of svg] (chk) {check.py\\[-1pt]{\fontsize{12}{14}\selectfont\color{lsMuted} verify/*.json}};
   \draw[arr] (tex) -- (pdf); \draw[arr] (pdf) -- (svg); \draw[arr] (svg) -- (pptx);
   \draw[arr] (yaml.east) -| (pptx.north);
   \draw[arr] (pdf.south) |- (chk.west);
   \draw[arr] (pptx.south) |- (chk.east);
 \end{tikzpicture}}
-\at{56}{404}{848}{\detail{Fixed stages: intake, template, outline, scaffold, write, build \& verify, deliver.}}
-\takeaway{Edit LaTeX, rebuild, and the PDF and PPTX stay identical.}
+\begin{lsgrid}[344]{4}
+\card{\stat{6.0 s}{full build of these 8 pages}}{CPU only, no GPU.}
+\card{\stat{18}{automatic checks}}{Glyphs to pixel diffs.}
+\card{\stat{1}{place to edit}}{Notes live in deck.yaml.}
+\card{\stat{0}{files overwritten}}{Rebuilds add \_v2, \_v3.}
+\end{lsgrid}
+\takeaway{Edit the LaTeX, rebuild, and the PDF and PPTX cannot drift apart.}
 \end{frame}
 
+% ---------------------------------------------------------------- 02 templates
 \lsChapter{02}
-\begin{frame}{Every content slide pairs text with a visual}\slideid{visual}
-\lead{Text explains the visual; the visual carries the evidence.}
-\at{56}{\lsContentTop}{470}{\begin{tikzpicture}
-\begin{axis}[width=430bp,height=262bp,ybar,bar width=26bp,ymin=0,ymax=100,
-  symbolic x coords={Text only,Text + figure},xtick=data,ylabel={Recall after one week (\%)},
-  nodes near coords,every node near coord/.append style={font=\fontsize{14}{16}\selectfont},
-  axis lines*=left,ymajorgrids,grid style={color=lsRule},enlarge x limits=0.5,
-  tick label style={font=\fontsize{14}{16}\selectfont},label style={font=\fontsize{14}{16}\selectfont}]
-\addplot[fill=lsAccent,draw=none] coordinates {(Text only,10) (Text + figure,65)};
-\end{axis}\end{tikzpicture}\par
-{\fontsize{\lsSizeCaption}{\lsLeadCaption}\selectfont\color{lsMuted}Illustrative numbers; picture-superiority effect (Medina, 2008).}}
-\at{560}{\lsContentTop}{344}{\point{Rule}{At least one figure, diagram, chart, table or video per content slide.}\vspace{12pt}
-\point{Budget}{About 50 English words or 80 CJK characters; split instead of shrinking.}}
-\takeaway{check.py fails any content slide without a visual.}
+\begin{frame}{Any template becomes boxes, colours and fonts}\slideid{template}
+\lead{import\_template.py turns a PPTX, PDF or image into template.yaml and a preview to check.}
+\figat{56}{148}{460}{259}{import_preview.png}{Preview of this deck's body page: title (blue), safe area (green), page number (red).}
+\at{548}{148}{356}{%
+\point{Boxes}{Placeholder positions from PPTX layouts; for PDFs and images, a warning when a box covers part of the design.}\vspace{10pt}
+\point{Palette}{Theme colours from PPTX, or sampled from the background:}\vspace{6pt}
+\begin{tikzpicture}[x=1bp,y=1bp]
+  \foreach \c/\h/\n [count=\i from 0] in {lsPrimary/24366B/primary,lsAccent/D2643C/accent}{
+    \fill[\c,rounded corners=3bp] (\i*170,0) rectangle ++(30,30);
+    \node[anchor=west,font=\fontsize{13}{15}\selectfont,align=left] at (\i*170+38,15) {\n\\[-2pt]{\ttfamily\color{lsMuted}\#\h}};}
+\end{tikzpicture}\par\vspace{4pt}
+\detail{Sampled from this template's backgrounds: both match template.yaml exactly.}}
+\takeaway{Show the preview to the user before writing a single slide.}
 \end{frame}
 
+\begin{frame}{Five page roles, one consistent look}\slideid{roles}
+\lead{Backgrounds switch with \texttt{\textbackslash lsrole}; body pages keep content inside the safe area.}
+\begin{lsgrid}[150]{5}
+\fig[92]{role_cover.png}{cover}
+\fig[92]{role_agenda.png}{agenda}
+\fig[92]{role_section.png}{section}
+\fig[92]{role_body.png}{body}
+\fig[92]{role_closing.png}{closing}
+\end{lsgrid}
+\begin{lsgrid}[290]{3}
+\card{Dense but readable}{17 pt body, 15 pt details. A content slide holds one main visual plus two or three annotated points.}
+\card{Layouts for evidence}{\texttt{lsgrid} with \texttt{card}, \texttt{cardpic}, \texttt{fig} and \texttt{stat} places figures and numbers side by side.}
+\card{Fonts that agree}{Serif headings, sans body, and a matching math font, falling back to fonts that ship with TeX Live.}
+\end{lsgrid}
+\takeaway{The template carries the design; the deck only carries content.}
+\end{frame}
+
+% ---------------------------------------------------------------- 03 checks
 \lsChapter{03}
-\begin{frame}{Automatic checks before delivery}\slideid{checks}
-\lead{Scripts first, then eyes.}
-\at{56}{\lsContentTop}{848}{\centering\fontsize{21}{30}\selectfont\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{lll}
+\begin{frame}{Checks run before anyone looks at a slide}\slideid{checks}
+\lead{check.py fails the build on hard problems and warns on soft ones.}
+\at{56}{148}{460}{\renewcommand{\arraystretch}{1.22}\fontsize{14}{17}\selectfont
+\begin{tabular}{@{}p{70bp}p{240bp}l@{}}
 \toprule
-\textbf{Area} & \textbf{Checked} & \textbf{Level}\\
+\textbf{Area} & \textbf{What is checked} & \textbf{Level}\\
 \midrule
-LaTeX & glyphs, overfull boxes & FAIL\\
-Layout & safe area, text budget & FAIL\\
-Visuals & one per content slide & FAIL\\
-Package & SVG, notes, links, video & FAIL\\
-Rendering & PPTX vs.\ PDF pixels & FAIL\\
-Hygiene & masks, size, scripts & WARN\\
+LaTeX & glyphs, overfull boxes, refs & \textcolor{lsAccent}{FAIL}\\
+Layout & safe area, overlaps & \textcolor{lsAccent}{FAIL}\\
+Visuals & one per slide, text budget & \textcolor{lsAccent}{FAIL}\\
+Density & near-empty slides & WARN\\
+Package & SVG, notes, links, video & \textcolor{lsAccent}{FAIL}\\
+Render & PPTX vs.\ PDF pixels & \textcolor{lsAccent}{FAIL}\\
+Timing & seconds vs.\ talk length & \textcolor{lsAccent}{FAIL}\\
 \bottomrule
 \end{tabular}}
-\takeaway{Then review every page by eye.}
+\at{548}{148}{356}{\centering\begin{tikzpicture}
+\begin{axis}[width=348bp,height=210bp,ybar,bar width=14bp,ymin=0,ymax=14,
+  xtick=data,xticklabels={1,2,3,4,5,6,7,8},ylabel={mean $|\Delta|$ (0--255)},
+  axis lines*=left,ymajorgrids,grid style={color=lsRule},enlarge x limits=0.08,
+  tick label style={font=\fontsize{12}{14}\selectfont},label style={font=\fontsize{12}{14}\selectfont}]
+\addplot[fill=lsAccent,draw=none,nodes near coords,
+  every node near coord/.append style={font=\fontsize{10}{12}\selectfont,color=lsMuted}] coordinates {(1,1.37) (2,0.88) (3,2.27) (4,3.87) (5,2.75) (6,2.36) (7,1.22) (8,0.38)};
+\addplot[lsPrimary,dashed,line width=1bp,sharp plot,update limits=false] coordinates {(0.5,12) (8.5,12)};
+\end{axis}\end{tikzpicture}\par\vspace{2pt}
+\detail{PPTX rendered by LibreOffice vs.\ the PDF, per page of this deck. Dashed line: failure threshold 12.}}
+\takeaway{Every FAIL blocks delivery; every WARN is reported to the user.}
 \end{frame}
 
+\begin{frame}{The PPTX looks exactly like the PDF}\slideid{render}
+\lead{Each slide is a vector picture, so fonts and layout cannot shift in PowerPoint.}
+\begin{lsgrid}[142]{2}
+\fig[196]{render_pdf.png}{PDF, page 3 (rendered by poppler)}
+\fig[196]{render_pptx.png}{PPTX, slide 3 (rendered by LibreOffice)}
+\end{lsgrid}
+\at{56}{378}{848}{\centering\fontsize{15}{20}\selectfont
+$\displaystyle \Delta_{\text{page}} = \frac{1}{HW\cdot 3}\sum_{x,y,c}\bigl|P_{x,y,c}-Q_{x,y,c}\bigr| \;=\; 2.27 \quad (\text{threshold } 12)$}
+\takeaway{To change a slide, edit deck.tex and rebuild; never edit the PPTX.}
+\end{frame}
+
+% ---------------------------------------------------------------- closing
 {\lsrole{closing}
 \begin{frame}[plain]\slideid{closing}
-\at{80}{220}{800}{\centering{\headingfont\fontsize{40}{50}\selectfont\bfseries\color{lsInverse} Thank you\par}}
-\at{80}{340}{800}{\centering{\fontsize{22}{30}\selectfont\href{https://github.com/7HHHHH/latex-slides}{\color{lsInverse}github.com/7HHHHH/latex-slides}}}
+\at{80}{218}{800}{\centering{\headingfont\fontsize{42}{52}\selectfont\bfseries\color{lsInverse} Thank you\par}}
+\at{80}{340}{800}{\centering{\fontsize{20}{28}\selectfont\href{https://github.com/7HHHHH/latex-slides}{\color{lsInverse}github.com/7HHHHH/latex-slides}}}
 \end{frame}}
 
 \end{document}

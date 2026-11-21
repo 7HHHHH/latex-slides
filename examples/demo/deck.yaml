@@ -1,57 +1,74 @@
 # Single source for speaker notes, timing and sources. Slide ids match \slideid{...} in deck.tex.
 title: latex-slides
 presenter: latex-slides authors
-date: '2026-11-20'
+date: '2026-11-21'
 language: en
-duration_seconds: 240
+duration_seconds: 330
 sourcing: normal
 output_name: latex-slides_demo
-template: ../../templates/default
+template: paper              # built-in template name, or a path relative to this deck
 build:
   svg: true
   png_width: 1920
-checks:
-  max_text_units: 80
-  duration_tolerance: 0.1
-  render_diff_threshold: 12
 slides:
 - id: cover
   title: latex-slides
   seconds: 15
-  script: This deck was produced by the pipeline it describes.
+  script: This deck was produced by the pipeline it describes, and every number in it comes from running that pipeline on the deck itself.
   sources: []
 - id: agenda
   title: Agenda
-  seconds: 10
-  script: "Three parts: the pipeline, the visual rules, and the checks."
+  seconds: 15
+  script: "Three parts: the pipeline, templates and layouts, and the checks that run before delivery."
   sources: []
 - id: pipeline
-  title: One source, two deliverables
+  title: One source, two deliverables, one report
   seconds: 70
   script: |
-    All content lives in deck.tex; notes, timing and sources live in deck.yaml.
-    XeLaTeX produces the PDF, every page becomes an SVG with a PNG fallback, and the
-    PPTX gets speaker notes and videos. check.py verifies the result. Next, the rule
-    that keeps slides readable.
+    All slide content lives in deck.tex; the spoken script, timing and sources live in deck.yaml.
+    XeLaTeX produces the PDF, every page is exported as an SVG with a PNG fallback, and the PPTX is
+    assembled with speaker notes, links and videos. check.py then writes a JSON report. The four
+    numbers at the bottom were measured on this very deck. Next: how a template gets in.
   sources:
-    - latex-slides documentation, SKILL.md
-- id: visual
-  title: Every content slide pairs text with a visual
-  seconds: 70
-  script: |
-    People remember pictures far better than text alone. The chart uses illustrative
-    numbers in the spirit of the picture-superiority effect. That is why every content
-    slide needs a visual and a small text budget. Finally, how we verify all this.
-  sources:
-    - "Medina, J. Brain Rules. Pear Press, 2008 (picture superiority); numbers are illustrative"
-- id: checks
-  title: Automatic checks before delivery
+    - "Build time: wall clock of scripts/build.py on this deck, CPU only, measured 2026-11-21"
+    - "Check count: scripts/check.py output for this deck"
+- id: template
+  title: Any template becomes boxes, colours and fonts
   seconds: 60
   script: |
-    Scripts check fonts, layout, visuals, the PPTX package and rendering. Warnings are
-    reported to the user. After that, someone looks at every page.
+    The importer reads a PowerPoint template's layouts, theme colours and fonts, or takes a PDF or
+    images. It writes template.yaml and a preview where the boxes are drawn on top of the design.
+    For this template the colours were sampled from the backgrounds and came out identical to the
+    values in template.yaml. The agent shows this preview to you before writing slides.
   sources:
-    - latex-slides scripts/check.py
+    - "Preview and sampled colours: scripts/import_template.py run on templates/paper/bg/*.pdf"
+- id: roles
+  title: Five page roles, one consistent look
+  seconds: 50
+  script: |
+    These are the five backgrounds of the built-in paper template. Content pages use dense layouts:
+    a grid of cards, figures and headline numbers, so a slide can carry a visual and its evidence.
+    Then the checks.
+  sources:
+    - "Backgrounds: templates/paper/src/backgrounds.tex"
+- id: checks
+  title: Checks run before anyone looks at a slide
+  seconds: 60
+  script: |
+    The table lists what check.py verifies. Hard problems fail the build, soft ones become warnings
+    that the agent must report. The chart is the pixel difference between the PDF and the PPTX as
+    rendered by LibreOffice, for each page of this deck; all of them sit far below the threshold.
+  sources:
+    - "scripts/check.py; per-page values from verify/latex-slides_demo.json (render_diff)"
+- id: render
+  title: The PPTX looks exactly like the PDF
+  seconds: 45
+  script: |
+    On the left the PDF page, on the right the same slide from the PPTX, rendered independently.
+    Because every slide is a vector picture, nothing shifts in PowerPoint. The price is that you
+    change slides in LaTeX, not in PowerPoint.
+  sources:
+    - "Renders of page 3 from the build of this deck; metric as implemented in scripts/check.py"
 - id: closing
   title: Thank you
   seconds: 15

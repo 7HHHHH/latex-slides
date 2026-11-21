@@ -1,0 +1,32 @@
+# latex-slides template description. Coordinates in bp from the top-left corner.
+name: paper
+description: Warm paper ground, deep indigo structure, terracotta accents; serif headings, sans body.
+page_size: {width_bp: 960, height_bp: 540}
+backgrounds:
+  cover: bg/cover.pdf
+  agenda: bg/agenda.pdf
+  section: bg/section.pdf
+  body: bg/body.pdf
+  closing: bg/closing.pdf
+# Content box on body pages: \lead, \takeaway, layout helpers and check.py use it.
+safe_area: {x: 56, y: 94, w: 848, h: 396}
+title: {x: 56, y: 30, w: 848, h: 52}
+page_number: {x: 844, y: 508, w: 60, h: 20}
+palette:
+  primary: "#24366B"
+  accent: "#D2643C"
+  muted: "#6B6F78"
+  text: "#1F2328"
+  title: "#1F2328"
+  rule: "#DED8CC"
+  inverse: "#FFFFFF"
+# First installed font wins; the last entries ship with TeX Live.
+fonts:
+  latin:
+    heading: [Charter, Bitstream Charter, Georgia, TeX Gyre Pagella]   # Charter first: lining figures
+    body: [Arial, Helvetica Neue, Liberation Sans, TeX Gyre Heros]
+  cjk:
+    heading: [Songti SC, Noto Serif CJK SC, Source Han Serif SC, STSong]
+    body: [PingFang SC, Microsoft YaHei, Noto Sans CJK SC, Source Han Sans SC]
+  math: [TeX Gyre Pagella Math, Latin Modern Math]
+sizes: {title: 24, heading: 19, body: 17, detail: 15, caption: 12, number: 12}

@@ -24,13 +24,17 @@ from pptx.opc.packuri import PackURI
 from pptx.oxml.ns import qn
 from pypdf import PdfReader
 
-from lib.common import (EMU_PER_BP, SKILL_ROOT, die, dump_json, is_cjk, load_yaml, need, next_version,
+from lib.common import (EMU_PER_BP, SKILL_ROOT, die, dump_json, lang_key, load_yaml, need, next_version,
                         parse_lsmeta, run, write_ls_config)
 
 SVG_EXT_URI = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}"
 ASVG_NS = "http://schemas.microsoft.com/office/drawing/2016/SVG/main"
 LABELS = {"en": ("Slide", "Suggested time", "s", "Sources", "(continued)"),
-          "zh": ("第 {n} 页", "建议用时", " 秒", "资料依据", "（续）")}
+          "zh": ("第 {n} 页", "建议用时", " 秒", "资料依据", "（续）"),
+          "hant": ("第 {n} 頁", "建議用時", " 秒", "資料依據", "（續）"),
+          "ja": ("スライド {n}", "目安時間", " 秒", "出典", "（続き）"),
+          "ko": ("슬라이드 {n}", "권장 시간", "초", "출처", "(계속)")}
+FULLWIDTH_COLON = ("zh", "hant", "ja")
 
 
 def compile_pdf(deck: Path) -> Path:
@@ -85,10 +89,11 @@ def notes_for(slide: dict, n: int, continued: bool, lang: str) -> str:
     head = page_lbl.format(n=f"{n:02d}") if "{n}" in page_lbl else f"{page_lbl} {n:02d}"
     if continued:
         return f"{head}  {slide.get('title', '')} {cont}"
-    parts = [f"{head}  {slide.get('title', '')}", f"{time_lbl}{'：' if lang == 'zh' else ': '}{slide.get('seconds', 0)}{unit}",
+    colon = "：" if lang in FULLWIDTH_COLON else ": "
+    parts = [f"{head}  {slide.get('title', '')}", f"{time_lbl}{colon}{slide.get('seconds', 0)}{unit}",
              "", (slide.get("script") or "").strip()]
     if slide.get("sources"):
-        parts += ["", f"{src_lbl}{'：' if lang == 'zh' else ':'}"] + [f"- {s}" for s in slide["sources"]]
+        parts += ["", f"{src_lbl}{colon.strip()}"] + [f"- {s}" for s in slide["sources"]]
     return "\n".join(parts).strip()
 
 
@@ -136,7 +141,7 @@ def main() -> None:
     need("latexmk", "xelatex", "pdftoppm", "pdftocairo", "pdftotext")
     deck = a.deck_dir.resolve()
     cfg = load_yaml(deck / "deck.yaml")
-    lang = "zh" if is_cjk(cfg.get("language", "en")) else "en"
+    lang = lang_key(cfg.get("language", "en"))
     bcfg = cfg.get("build") or {}
     use_svg = bool(bcfg.get("svg", True)) and not a.raster_only
     png_width = a.png_width or int(bcfg.get("png_width", 1920))
